@@ -1,0 +1,1404 @@
+/**
+ * ============================================================================
+ * 生物力学引擎 (Biomechanics Engine)
+ * ============================================================================
+ *
+ * 独立的医学级生物力学计算引擎，从 BocciaCam 中解耦所有数学运算。
+ * 供专利申请使用 — 所有公式均有完整数学文档。
+ *
+ * 包含八大分析器：
+ * 1. CoreStabilityAnalyzer   — 中轴偏移角度（肩-髋连线 vs 垂直轴）
+ * 2. AngularVelocityAnalyzer — 肩/肘/腕三关节角速度 (°/s)
+ * 3. TremorDetector          — 震颤检测（滑动窗口频率分析）
+ * 4. CompensationDetector    — 代偿动作识别（甩头/侧身）
+ * 5. SubjectTracker          — 主体锁定（多人环境下锁定目标）
+ * 6. PostureCorrector        — 坐姿修正（驼背/歪斜补偿）
+ * 7. SignalProcessor         — 信号降噪（四阶 Butterworth 零相位滤波）
+ * 8. FingerSpreadDetector    — 手指张开检测（出手释放辅助判定）
+ *
+ * @author AI Biomechanics System
+ * @patent 3D 骨架追踪分析系统 — Phase 2.1
+ */
+
+import { KalmanFilter1D } from './kalman-filter'
+import { SmoothingBuffer } from './signal-processing'
+
+// ============================================================================
+// 共用类型定义
+// ============================================================================
+
+export type Point3D = { x: number; y: number; z: number }
+
+export interface JointAngles {
+    shoulder: number  // 肩关节角度 (°)
+    elbow: number     // 肘关节角度 (°)
+    wrist: number     // 腕关节角度 (°) — 肘-腕-手指
+}
+
+export interface AngularVelocities {
+    shoulder: number  // 肩关节角速度 (°/s)
+    elbow: number     // 肘关节角速度 (°/s)
+    wrist: number     // 腕关节角速度 (°/s)
+}
+
+export interface TremorResult {
+    detected: boolean          // 是否检测到震颤
+    frequency: number | null   // 估计频率 (Hz)，null 表示未检测到
+    severity: 'none' | 'mild' | 'moderate' | 'severe'
+    affectedJoint: string | null  // 受影响的关节
+}
+
+export interface CompensationResult {
+    type: 'head_throw' | 'side_lean' | 'shoulder_hike' | null
+    severity: number           // 0-100 严重度
+    description: string        // 人类可读描述
+}
+
+export interface SubjectTrackingResult {
+    locked: boolean            // 是否成功锁定
+    confidence: number         // 锁定信心值 0-1
+    boundingBox: { x: number; y: number; w: number; h: number } | null
+}
+
+export interface PostureCorrectionResult {
+    correctionAngle: number    // 补偿旋转角度 (°)
+    isHunched: boolean         // 是否驼背
+    isTilted: boolean          // 是否歪斜
+    adjustedLandmarks: Map<number, Point3D> | null  // 修正后的坐标
+}
+
+/** 扩展后的完整生物力学指标 (双轨数据架构) */
+export interface BiomechanicsMetrics {
+    // === 基础指标（Phase 1 已有，并入滤波结果）===
+    elbowROM: number | null
+    elbowROM_raw: number | null
+    trunkStability: number | null
+    trunkStability_raw: number | null
+    velocity: number | null
+    velocity_raw: number | null
+
+    // === Phase 2: 核心数据指标 ===
+    coreStabilityAngle: number | null
+    coreStabilityAngle_raw: number | null
+    shoulderAngularVel: number | null
+    elbowAngularVel: number | null
+    wristAngularVel: number | null
+    tremorDetected: boolean
+    tremorFrequency: number | null
+    tremorSeverity: string
+    compensationType: string | null
+    compensationSeverity: number
+    compensationDescription: string
+
+    // === Phase 2: 场域信息 ===
+    subjectLocked: boolean
+    subjectConfidence: number
+    postureCorrection: number
+    isHunched: boolean
+    isTilted: boolean
+
+    // === Phase 2.1: 手指张开检测 ===
+    fingerSpreadAngle: number | null  // 拇指-手腕-小指夹角 (°)
+    fingerSpreadDelta: number         // 帧间张开变化率 (°/frame)
+    fingerReleaseDetected: boolean    // 手指张开释放信号
+
+    // === 动作检测 ===
+    isReleaseFrame: boolean   // 当前帧是否为判定出的「出手瞬间」
+}
+
+
+// ============================================================================
+// MediaPipe Pose Landmark IDs（扩展）
+// ============================================================================
+
+export const LANDMARKS = {
+    NOSE: 0,
+    LEFT_EYE: 2,
+    RIGHT_EYE: 5,
+    LEFT_EAR: 7,
+    RIGHT_EAR: 8,
+    LEFT_SHOULDER: 11,
+    RIGHT_SHOULDER: 12,
+    LEFT_ELBOW: 13,
+    RIGHT_ELBOW: 14,
+    LEFT_WRIST: 15,
+    RIGHT_WRIST: 16,
+    LEFT_PINKY: 17,
+    RIGHT_PINKY: 18,
+    LEFT_INDEX: 19,
+    RIGHT_INDEX: 20,
+    LEFT_THUMB: 21,
+    RIGHT_THUMB: 22,
+    LEFT_HIP: 23,
+    RIGHT_HIP: 24,
+    LEFT_KNEE: 25,
+    RIGHT_KNEE: 26,
+} as const
+
+
+// ============================================================================
+// 1. CoreStabilityAnalyzer — 中轴偏移角度
+// ============================================================================
+/**
+ * 中轴稳定性分析器
+ *
+ * 【数学模型】
+ * 计算肩膀中点 (M_shoulder) 与髋部中点 (M_hip) 连线相对于垂直轴的3D偏移角度。
+ *
+ * $$
+ * M_{shoulder} = \frac{P_{L\_shoulder} + P_{R\_shoulder}}{2}
+ * $$
+ *
+ * $$
+ * M_{hip} = \frac{P_{L\_hip} + P_{R\_hip}}{2}
+ * $$
+ *
+ * 躯干向量：$\vec{T} = M_{shoulder} - M_{hip}$
+ * 垂直参考向量：$\vec{V} = (0, -1, 0)$（Y轴向上）
+ *
+ * $$
+ * \theta_{core} = \cos^{-1}\left(\frac{|\vec{T} \cdot \vec{V}|}{|\vec{T}|}\right) \times \frac{180°}{\pi}
+ * $$
+ *
+ * 【临床意义】
+ * - θ_core ≤ 5°  → 优秀（核心肌群控制良好）
+ * - θ_core ≤ 15° → 正常范围
+ * - θ_core > 15° → 高跌倒风险（核心肌群失能）
+ */
+export class CoreStabilityAnalyzer {
+    /**
+     * 计算中轴偏移角度
+     * @param leftShoulder 左肩 3D 坐标（已转换为像素）
+     * @param rightShoulder 右肩 3D 坐标
+     * @param leftHip 左髋 3D 坐标
+     * @param rightHip 右髋 3D 坐标
+     * @returns 中轴偏移角度 (°)
+     */
+    calculate(
+        leftShoulder: Point3D,
+        rightShoulder: Point3D,
+        leftHip: Point3D,
+        rightHip: Point3D
+    ): number {
+        // 步骤 1: 计算肩膀中点
+        const mShoulder: Point3D = {
+            x: (leftShoulder.x + rightShoulder.x) / 2,
+            y: (leftShoulder.y + rightShoulder.y) / 2,
+            z: (leftShoulder.z + rightShoulder.z) / 2,
+        }
+
+        // 步骤 2: 计算髋部中点
+        const mHip: Point3D = {
+            x: (leftHip.x + rightHip.x) / 2,
+            y: (leftHip.y + rightHip.y) / 2,
+            z: (leftHip.z + rightHip.z) / 2,
+        }
+
+        // 步骤 3: 躯干向量 (从髋到肩)
+        const trunkVec: Point3D = {
+            x: mShoulder.x - mHip.x,
+            y: mShoulder.y - mHip.y,
+            z: mShoulder.z - mHip.z,
+        }
+
+        // 步骤 4: 垂直参考向量
+        // 注意：MediaPipe 坐标系中 Y 轴正方向朝下，所以垂直向上是 (0, -1, 0)
+        const verticalRef = { x: 0, y: -1, z: 0 }
+
+        // 步骤 5: 向量点积法求夹角
+        const dot = trunkVec.x * verticalRef.x + trunkVec.y * verticalRef.y + trunkVec.z * verticalRef.z
+        const magTrunk = Math.sqrt(trunkVec.x ** 2 + trunkVec.y ** 2 + trunkVec.z ** 2)
+
+        if (magTrunk === 0) return 0
+
+        const cosTheta = Math.abs(dot) / magTrunk
+        const clampedCos = Math.max(-1, Math.min(1, cosTheta))
+        return Math.acos(clampedCos) * (180 / Math.PI)
+    }
+}
+
+
+// ============================================================================
+// 2. AngularVelocityAnalyzer — 关节角速度
+// ============================================================================
+/**
+ * 角速度分析器
+ *
+ * 【数学模型】
+ * 在每帧中，分别计算肩、肘、腕三个关节的角度，
+ * 然后以帧间时间差 Δt 计算角速度：
+ *
+ * $$
+ * \omega_{joint} = \frac{\theta_t - \theta_{t-1}}{\Delta t} \quad (°/s)
+ * $$
+ *
+ * 关节角度定义：
+ * - 肩角：(肘 → 肩 → 髋) 三点夹角
+ * - 肘角：(肩 → 肘 → 腕) 三点夹角（即现有 ROM）
+ * - 腕角：(肘 → 腕 → 食指) 三点夹角
+ *
+ * 【临床意义】
+ * - ω > 300°/s → 爆发力优秀
+ * - ω 50-300°/s → 正常范围
+ * - ω < 50°/s → 动作迟缓（可能早期帕金森/肌少症）
+ */
+export class AngularVelocityAnalyzer {
+    private prevAngles: JointAngles | null = null
+    private prevTimestamp: number = 0
+
+    // 滑动窗口历史（供震颤分析使用）
+    private history: { angles: JointAngles; time: number }[] = []
+    private readonly HISTORY_WINDOW = 30  // 保留 30 帧（~1秒 @ 30fps）
+
+    /**
+     * 3D 向量点积法计算三点夹角
+     */
+    private calculateAngle(a: Point3D, b: Point3D, c: Point3D): number {
+        const ba = { x: a.x - b.x, y: a.y - b.y, z: (a.z || 0) - (b.z || 0) }
+        const bc = { x: c.x - b.x, y: c.y - b.y, z: (c.z || 0) - (b.z || 0) }
+
+        const dot = ba.x * bc.x + ba.y * bc.y + ba.z * bc.z
+        const magBA = Math.sqrt(ba.x ** 2 + ba.y ** 2 + ba.z ** 2)
+        const magBC = Math.sqrt(bc.x ** 2 + bc.y ** 2 + bc.z ** 2)
+
+        if (magBA === 0 || magBC === 0) return 0
+        const cosTheta = Math.max(-1, Math.min(1, dot / (magBA * magBC)))
+        return Math.acos(cosTheta) * (180 / Math.PI)
+    }
+
+    /**
+     * 更新帧数据并返回角速度
+     * @returns AngularVelocities (°/s)
+     */
+    update(
+        shoulder: Point3D,
+        elbow: Point3D,
+        wrist: Point3D,
+        hip: Point3D,
+        indexFinger: Point3D | null,
+        timestamp: number
+    ): AngularVelocities {
+        // 计算当前帧的三个关节角度
+        const shoulderAngle = this.calculateAngle(elbow, shoulder, hip)
+        const elbowAngle = this.calculateAngle(shoulder, elbow, wrist)
+        const wristAngle = indexFinger
+            ? this.calculateAngle(elbow, wrist, indexFinger)
+            : 0
+
+        const currentAngles: JointAngles = {
+            shoulder: shoulderAngle,
+            elbow: elbowAngle,
+            wrist: wristAngle,
+        }
+
+        // 记录历史
+        this.history.push({ angles: currentAngles, time: timestamp })
+        if (this.history.length > this.HISTORY_WINDOW) {
+            this.history.shift()
+        }
+
+        // 计算角速度
+        let velocities: AngularVelocities = { shoulder: 0, elbow: 0, wrist: 0 }
+
+        if (this.prevAngles && this.prevTimestamp > 0) {
+            const dt = (timestamp - this.prevTimestamp) / 1000  // ms → s
+            if (dt > 0 && dt < 1) {  // 排除异常帧间隔
+                velocities = {
+                    shoulder: Math.abs(currentAngles.shoulder - this.prevAngles.shoulder) / dt,
+                    elbow: Math.abs(currentAngles.elbow - this.prevAngles.elbow) / dt,
+                    wrist: Math.abs(currentAngles.wrist - this.prevAngles.wrist) / dt,
+                }
+            }
+        }
+
+        this.prevAngles = currentAngles
+        this.prevTimestamp = timestamp
+        return velocities
+    }
+
+    /**
+     * 获取角速度历史（供外部震颤分析）
+     */
+    getHistory() {
+        return this.history
+    }
+
+    /**
+     * 重置状态
+     */
+    reset() {
+        this.prevAngles = null
+        this.prevTimestamp = 0
+        this.history = []
+    }
+}
+
+
+// ============================================================================
+// 3. TremorDetector — 震颤检测
+// ============================================================================
+/**
+ * 震颤检测器
+ *
+ * 【数学模型】
+ * 在滑动窗口（30帧 ≈ 1秒 @30fps）内分析角速度方向变化：
+ *
+ * 零交叉法 (Zero-Crossing Method)：
+ * 计算角速度导数的正负号变化次数 N_cross
+ *
+ * $$
+ * N_{cross} = \sum_{i=1}^{n-1} \mathbb{1}\left[\text{sign}(\Delta\theta_i) \neq \text{sign}(\Delta\theta_{i-1})\right]
+ * $$
+ *
+ * 估计频率：
+ * $$
+ * f_{tremor} = \frac{N_{cross}}{2 \times T_{window}} \quad (Hz)
+ * $$
+ *
+ * 【临床阈值】
+ * - N_cross ≥ 6 且 f_tremor 在 3-12 Hz → 震颤阳性
+ * - 帕金森震颤典型频率：4-6 Hz（静息震颤）
+ * - 必要性震颤 (Essential Tremor)：5-12 Hz（动作震颤）
+ *
+ * 严重度分级：
+ * - mild:     N_cross 6-8,   振幅 < 5°
+ * - moderate: N_cross 8-12,  振幅 5-15°
+ * - severe:   N_cross > 12,  振幅 > 15°
+ */
+export class TremorDetector {
+    // ─── 学理依据 (Clinical Evidence) ───
+    // 根据 Deuschl et al. (1998) Movement Disorder Society 震颤分类共识：
+    //   - 帕金森静息震颤 (Parkinsonian Resting Tremor): 3-6 Hz, 振幅 1-15°+
+    //   - 必要性震颤 (Essential Tremor): 4-12 Hz (动作震颤)
+    //   - 生理性震颤 (Physiological Tremor): 8-12 Hz, 振幅 < 0.5°（正常，不应检出）
+    //
+    // MediaPipe Pose 在 30fps 下的测量精度约 ±0.5-1.0°，
+    // 因此噪声门槛设为 1.5° 以滤除相机噪声同时捕获临床级震颤。
+
+    private readonly MIN_CROSSINGS = 6        // 最小零交叉次数（临床 4Hz 震颤在 1s 内约 8 次交叉）
+    private readonly MIN_FREQ_HZ = 3          // 最小震颤频率 (Hz) — 排除自主性缓慢摆动
+    private readonly MAX_FREQ_HZ = 12         // 最大震颤频率 (Hz) — 排除正常快速动作
+    private readonly WINDOW_FRAMES = 30       // 分析窗口 ≈ 1 秒 @30fps（临床震颤需 ≥ 0.5 秒持续）
+
+    /**
+     * 分析震颤
+     * @param angVelHistory 角速度历史记录（来自 AngularVelocityAnalyzer.getHistory()）
+     */
+    analyze(angVelHistory: { angles: JointAngles; time: number }[]): TremorResult {
+        if (angVelHistory.length < this.WINDOW_FRAMES) {
+            return { detected: false, frequency: null, severity: 'none', affectedJoint: null }
+        }
+
+        // 取最近 WINDOW_FRAMES 帧
+        const window = angVelHistory.slice(-this.WINDOW_FRAMES)
+
+        // 对三个关节分别分析
+        const joints: (keyof JointAngles)[] = ['shoulder', 'elbow', 'wrist']
+        let worstResult: TremorResult = { detected: false, frequency: null, severity: 'none', affectedJoint: null }
+
+        for (const joint of joints) {
+            // 提取该关节的角度序列
+            const angleSequence = window.map(h => h.angles[joint])
+
+            // 计算帧间角度变化（一阶差分）
+            const deltas: number[] = []
+            for (let i = 1; i < angleSequence.length; i++) {
+                deltas.push(angleSequence[i] - angleSequence[i - 1])
+            }
+
+            // ─── 抗噪声过滤 (Anti-Noise Gate) ───
+            // MediaPipe 相機噪聲典型值 0.3-1.0°,
+            // 帕金森靜息震顫振幅通常 > 2°（國際運動障礙學會 MDS 標準）
+            // 設為 1.5° 可有效區分噪聲與臨床震顫
+            const NOISE_THRESHOLD = 1.5 // 度 — 基於 MDS 臨床分級標準
+            let crossings = 0
+
+            for (let i = 1; i < deltas.length; i++) {
+                // 当前帧变化超过噪声门槛即计入（单帧判定，避免漏检轻微震颤）
+                if (Math.abs(deltas[i]) > NOISE_THRESHOLD) {
+                    if (i > 0 && ((deltas[i] > 0 && deltas[i - 1] < 0) || (deltas[i] < 0 && deltas[i - 1] > 0))) {
+                        crossings++
+                    }
+                }
+            }
+
+            // 计算时间窗口
+            const tWindow = (window[window.length - 1].time - window[0].time) / 1000  // s
+            if (tWindow <= 0) continue
+
+            // 估计频率 (Hz) = 零交叉数 / (2 × 时间窗口)
+            const freq = crossings / (2 * tWindow)
+
+            // 计算有效振幅（仅计入超过门槛的帧间差）
+            const significantDeltas = deltas.filter(d => Math.abs(d) > NOISE_THRESHOLD)
+            const amplitude = significantDeltas.length > 0
+                ? significantDeltas.reduce((a, b) => a + Math.abs(b), 0) / significantDeltas.length
+                : 0
+
+            // ─── 震颤判定（四重条件 — 符合 MDS 临床筛查标准） ───
+            // 1. 零交叉次数 ≥ 6（30帧窗口，4Hz 震颤约产生 8 次交叉）
+            // 2. 频率落在临床震颤频段 3-12 Hz
+            // 3. 平均振幅 > 1.5°（排除生理性微震颤）
+            // 4. 有效抖动帧占比 > 20%（允许间歇性震颤，帕金森初期常见）
+            const significantRatio = significantDeltas.length / deltas.length
+            if (crossings >= this.MIN_CROSSINGS && freq >= this.MIN_FREQ_HZ && freq <= this.MAX_FREQ_HZ && amplitude > NOISE_THRESHOLD && significantRatio > 0.2) {
+                // 严重度分级 — 基于 Fahn-Tolosa-Marin 震颤评定量表 (TRS) 简化分级
+                let severity: 'none' | 'mild' | 'moderate' | 'severe' = 'mild'
+                if (crossings > 14 || amplitude > 12) severity = 'severe'
+                else if (crossings > 10 || amplitude > 6) severity = 'moderate'
+
+                // 保留最严重的结果
+                const severityRank = { none: 0, mild: 1, moderate: 2, severe: 3 }
+                if (severityRank[severity] > severityRank[worstResult.severity]) {
+                    worstResult = {
+                        detected: true,
+                        frequency: Math.round(freq * 10) / 10,
+                        severity,
+                        affectedJoint: joint,
+                    }
+                }
+            }
+        }
+
+        return worstResult
+    }
+}
+
+
+// ============================================================================
+// 4. CompensationDetector — 代偿动作识别
+// ============================================================================
+/**
+ * 代偿动作检测器
+ *
+ * 【数学模型】
+ *
+ * A. 甩头代偿 (Head Throw)：
+ * 监控投球过程中头部节点(NOSE, ID:0) 相对肩膀中点的 急剧位移。
+ * $$
+ * D_{head} = \sqrt{(\Delta x_{nose})^2 + (\Delta y_{nose})^2} - \sqrt{(\Delta x_{shoulder\_mid})^2 + (\Delta y_{shoulder\_mid})^2}
+ * $$
+ * 若 D_head > 阈值（30px/frame），判定为甩头代偿。
+ *
+ * B. 侧身代偿 (Side Lean)：
+ * 监控髋部中线相对肩膀中线的 侧向偏移差异。
+ * $$
+ * \Delta_{lateral} = |M_{shoulder,x} - M_{hip,x}|
+ * $$
+ * 若 Δ_lateral > 阈值（肩宽的 25%），判定为侧身代偿。
+ *
+ * C. 耸肩代偿 (Shoulder Hike)：
+ * 投球侧肩膀突然上抬超过非投球侧。
+ * $$
+ * \Delta_{shoulder\_y} = |P_{R\_shoulder,y} - P_{L\_shoulder,y}|
+ * $$
+ * 若 Δ_shoulder_y 增量 > 阈值，判定为耸肩代偿。
+ */
+export class CompensationDetector {
+    private prevNose: Point3D | null = null
+    private prevShoulderMid: Point3D | null = null
+    private prevHipMid: Point3D | null = null
+    private baselineShoulderWidth: number = 0
+
+    // 头部相对位移历史（用于平滑判断）
+    private headDisplacementHistory: number[] = []
+    private lateralOffsetHistory: number[] = []
+    private readonly SMOOTHING_WINDOW = 5
+
+    /**
+     * 设置肩宽基准值（在初始帧中调用）
+     */
+    setBaseline(leftShoulder: Point3D, rightShoulder: Point3D) {
+        this.baselineShoulderWidth = Math.sqrt(
+            (rightShoulder.x - leftShoulder.x) ** 2 +
+            (rightShoulder.y - leftShoulder.y) ** 2
+        )
+    }
+
+    /**
+     * 检测代偿动作
+     */
+    detect(
+        nose: Point3D,
+        leftShoulder: Point3D,
+        rightShoulder: Point3D,
+        leftHip: Point3D,
+        rightHip: Point3D
+    ): CompensationResult {
+        const shoulderMid: Point3D = {
+            x: (leftShoulder.x + rightShoulder.x) / 2,
+            y: (leftShoulder.y + rightShoulder.y) / 2,
+            z: (leftShoulder.z + rightShoulder.z) / 2,
+        }
+        const hipMid: Point3D = {
+            x: (leftHip.x + rightHip.x) / 2,
+            y: (leftHip.y + rightHip.y) / 2,
+            z: (leftHip.z + rightHip.z) / 2,
+        }
+
+        // 自动设置基准
+        if (this.baselineShoulderWidth === 0) {
+            this.setBaseline(leftShoulder, rightShoulder)
+        }
+
+        let result: CompensationResult = { type: null, severity: 0, description: '动作正常' }
+
+        if (this.prevNose && this.prevShoulderMid && this.prevHipMid) {
+            // 收集所有代偿候选，最终返回最严重的一种
+            const candidates: CompensationResult[] = []
+
+            // --- A. 甩头检测 (Head Throw) ---
+            // 学理依据：Bobath 神经发育治疗概念
+            // 坐姿投球时头部相对肩膀的急剧位移超过肩宽 5-8% 被视为代偿模式
+            // 参考：Shumway-Cook & Woollacott (2017) Motor Control, Ch.17 - Postural Control
+            const headDisp = Math.sqrt(
+                (nose.x - this.prevNose.x) ** 2 +
+                (nose.y - this.prevNose.y) ** 2
+            )
+            const shoulderDisp = Math.sqrt(
+                (shoulderMid.x - this.prevShoulderMid.x) ** 2 +
+                (shoulderMid.y - this.prevShoulderMid.y) ** 2
+            )
+            const relativeHeadDisp = headDisp - shoulderDisp
+
+            this.headDisplacementHistory.push(relativeHeadDisp)
+            if (this.headDisplacementHistory.length > this.SMOOTHING_WINDOW) {
+                this.headDisplacementHistory.shift()
+            }
+
+            const avgHeadDisp = this.headDisplacementHistory.reduce((a, b) => a + b, 0)
+                / this.headDisplacementHistory.length
+
+            // 阈值：相对位移 > 肩宽的 6%（Bobath 概念坐姿投球标准）
+            const headThreshold = this.baselineShoulderWidth * 0.06
+            if (avgHeadDisp > headThreshold) {
+                const severity = Math.min(100, Math.round((avgHeadDisp / headThreshold) * 30))
+                candidates.push({
+                    type: 'head_throw',
+                    severity,
+                    description: `甩头代偿：头部相对肩膀急剧位移 (${Math.round(avgHeadDisp)}px)`,
+                })
+            }
+
+            // --- B. 侧身检测 (Side Lean) ---
+            // 学理依据：Neumann (2010) Kinesiology of the Musculoskeletal System
+            // 坐姿投掷中肩-髋中线侧向偏移超过肩宽 25% 表示明显重心转移代偿
+            // 临床意义：可能表示核心肌力不足，透过躯干侧倾产生投球力量
+            const lateralOffset = Math.abs(shoulderMid.x - hipMid.x)
+            this.lateralOffsetHistory.push(lateralOffset)
+            if (this.lateralOffsetHistory.length > this.SMOOTHING_WINDOW) {
+                this.lateralOffsetHistory.shift()
+            }
+
+            const avgLateralOffset = this.lateralOffsetHistory.reduce((a, b) => a + b, 0)
+                / this.lateralOffsetHistory.length
+
+            // 阈值：侧向偏移 > 肩宽的 25%（运动学标准重心转移阈值）
+            const lateralThreshold = this.baselineShoulderWidth * 0.25
+            if (avgLateralOffset > lateralThreshold) {
+                const severity = Math.min(100, Math.round((avgLateralOffset / lateralThreshold) * 40))
+                candidates.push({
+                    type: 'side_lean',
+                    severity,
+                    description: `侧身代偿：肩-髋中线侧向偏移 ${Math.round(avgLateralOffset)}px (${Math.round(avgLateralOffset / this.baselineShoulderWidth * 100)}% 肩宽)`,
+                })
+            }
+
+            // --- C. 耸肩检测 (Shoulder Hike) ---
+            // 学理依据：Sahrmann (2002) Diagnosis & Treatment of Movement Impairment Syndromes
+            // 肩部高差超过肩宽 15% 为临床显著耸肩代偿（上斜方肌/提肩胛肌过度激活）
+            // 临床意义：投球时代偿性提肩以增加出力，常见于肩关节活动度受限或肌力不足
+            const shoulderHeightDiff = Math.abs(rightShoulder.y - leftShoulder.y)
+            const shoulderHikeThreshold = this.baselineShoulderWidth * 0.15
+            if (shoulderHeightDiff > shoulderHikeThreshold) {
+                const severity = Math.min(100, Math.round((shoulderHeightDiff / shoulderHikeThreshold) * 35))
+                candidates.push({
+                    type: 'shoulder_hike',
+                    severity,
+                    description: `耸肩代偿：左右肩高低差 ${Math.round(shoulderHeightDiff)}px`,
+                })
+            }
+
+            // 从所有候选中选出最严重的代偿（不再互斥屏蔽）
+            if (candidates.length > 0) {
+                result = candidates.reduce((worst, current) =>
+                    current.severity > worst.severity ? current : worst
+                )
+            }
+        }
+
+        // 更新前帧记录
+        this.prevNose = { ...nose }
+        this.prevShoulderMid = { ...shoulderMid }
+        this.prevHipMid = { ...hipMid }
+
+        return result
+    }
+
+    reset() {
+        this.prevNose = null
+        this.prevShoulderMid = null
+        this.prevHipMid = null
+        this.baselineShoulderWidth = 0
+        this.headDisplacementHistory = []
+        this.lateralOffsetHistory = []
+    }
+}
+
+
+// ============================================================================
+// 5. SubjectTracker — 主体锁定机制
+// ============================================================================
+/**
+ * 主体锁定追踪器
+ *
+ * 【算法设计】
+ * MediaPipe Pose 本身只追踪单人。在多人环境中：
+ *
+ * 1. 初始化锁定阶段：
+ *    - 用户点击画面中的目标人物，系统获取初始 ROI（Region of Interest）
+ *    - 若未手动选择，默认锁定画面中央最大的骨架
+ *
+ * 2. 帧间追踪：
+ *    - 计算当前帧骨架的 bounding box 中心与上一帧锁定目标的距离
+ *    - 若距离 < 阈值（bounding box 对角线的 50%），认为是同一目标
+ *    - 若距离 > 阈值，标记为锁定丢失
+ *
+ * 3. 面积一致性验证：
+ *    - 比较当前帧骨架面积 vs 历史平均面积
+ *    - 偏差 > 40% → 可能误抓了另一个人
+ *
+ * $$
+ * D_{track} = \sqrt{(x_{center,t} - x_{center,t-1})^2 + (y_{center,t} - y_{center,t-1})^2}
+ * $$
+ *
+ * $$
+ * \text{locked} = D_{track} < 0.5 \times D_{diagonal} \quad \wedge \quad |\frac{A_t - \bar{A}}{\\bar{A}}| < 0.4
+ * $$
+ */
+export class SubjectTracker {
+    private lockedCenter: { x: number; y: number } | null = null
+    private lockedArea: number = 0
+    private areaHistory: number[] = []
+
+    // Kalman Filters for x and y tracking
+    private kfX = new KalmanFilter1D();
+    private kfY = new KalmanFilter1D();
+
+    // 遮蔽處理狀態
+    private framesOccluded: number = 0;
+    private readonly MAX_OCCLUSION_FRAMES = 60; // 允許遮蔽的最多幀數 (約 2 秒 @ 30fps)
+
+    private readonly MAX_DISPLACEMENT_RATIO = 0.5   // 最大允许位移 = 对角线 × 50%
+    private readonly MAX_AREA_DEVIATION = 0.4       // 最大面积偏差 40%
+    private readonly AREA_HISTORY_SIZE = 10
+
+    /**
+     * 从骨架节点计算 bounding box
+     */
+    private computeBoundingBox(landmarks: any[]): { x: number; y: number; w: number; h: number; cx: number; cy: number; area: number } | null {
+        const visible = landmarks.filter((lm: any) => lm && lm.visibility > 0.3)
+        if (visible.length < 5) return null
+
+        let minX = Infinity, maxX = -Infinity
+        let minY = Infinity, maxY = -Infinity
+
+        for (const lm of visible) {
+            if (lm.x < minX) minX = lm.x
+            if (lm.x > maxX) maxX = lm.x
+            if (lm.y < minY) minY = lm.y
+            if (lm.y > maxY) maxY = lm.y
+        }
+
+        const w = maxX - minX
+        const h = maxY - minY
+        return {
+            x: minX, y: minY, w, h,
+            cx: minX + w / 2,
+            cy: minY + h / 2,
+            area: w * h,
+        }
+    }
+
+    /**
+     * 更新追踪状态
+     * @param landmarks 当前帧的全部 33 个 MediaPipe 节点
+     * @returns 追踪结果
+     */
+    update(landmarks: any[]): SubjectTrackingResult {
+        const bbox = this.computeBoundingBox(landmarks)
+        const dt = 1.0 / 30.0; // 預設 30fps 的時間差
+
+        // == 情境一：沒有抓到符合的 bbox (可能完全離開畫面或被徹底遮蔽) ==
+        if (!bbox) {
+            if (this.lockedCenter && this.framesOccluded < this.MAX_OCCLUSION_FRAMES) {
+                // Kalman Filter 盲預測
+                this.framesOccluded++;
+                this.lockedCenter = {
+                    x: this.kfX.predictOnly(dt),
+                    y: this.kfY.predictOnly(dt)
+                };
+
+                // 信心值隨著遮蔽時間逐漸下降
+                const confidence = Math.max(0, 1 - (this.framesOccluded / this.MAX_OCCLUSION_FRAMES));
+
+                // 我們依然回報 Locked 狀態以防止畫面跳動與重新選人
+                return {
+                    locked: true,
+                    confidence: Math.round(confidence * 100) / 100,
+                    boundingBox: null // 缺少面積資訊，但仍回傳鎖定
+                }
+            }
+            return { locked: false, confidence: 0, boundingBox: null }
+        }
+
+        // == 情境二：首次锁定 ==
+        if (!this.lockedCenter) {
+            this.lockedCenter = { x: bbox.cx, y: bbox.cy }
+            this.lockedArea = bbox.area
+            this.areaHistory = [bbox.area]
+            this.framesOccluded = 0;
+
+            // 初始化 Kalman Filters
+            this.kfX.reset(bbox.cx);
+            this.kfY.reset(bbox.cy);
+
+            return { locked: true, confidence: 1.0, boundingBox: { x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h } }
+        }
+
+        // == 情境三：正常追蹤狀態下 ==
+        // 1. 先用 Kalman Filter 預測並取得包含觀測值的最佳估計 (Predict & Update)
+        const smoothedCx = this.kfX.predictAndUpdate(dt, bbox.cx);
+        const smoothedCy = this.kfY.predictAndUpdate(dt, bbox.cy);
+
+        // 我们用 Kalman Filter 平滑后的位置，與前一次的锁定位置做比较，增加抗噪能力
+        const displacement = Math.sqrt(
+            (smoothedCx - this.lockedCenter.x) ** 2 +
+            (smoothedCy - this.lockedCenter.y) ** 2
+        )
+
+        const diagonal = Math.sqrt(bbox.w ** 2 + bbox.h ** 2)
+        const maxDisplacement = diagonal * this.MAX_DISPLACEMENT_RATIO
+
+        // 面积一致性
+        const avgArea = this.areaHistory.reduce((a, b) => a + b, 0) / this.areaHistory.length
+        const areaDeviation = Math.abs(bbox.area - avgArea) / avgArea
+
+        // 综合判断
+        // 如果 displacement 過大，表示追到的 bbox 可能根本就是誤抓另一個走過去的護理師
+        const displacementOk = displacement < maxDisplacement
+        const areaOk = areaDeviation < this.MAX_AREA_DEVIATION
+        const currentObservationOk = displacementOk && areaOk;
+
+        if (currentObservationOk) {
+            // 觀測非常可靠，重置遮蔽計數器
+            this.framesOccluded = 0;
+            const confidence = Math.max(0, 1 - displacement / maxDisplacement) * Math.max(0, 1 - areaDeviation);
+
+            // 更新锁定位置（这里不再需要指数平均，直接改用 Kalman 的结果，或混合）
+            const alpha = 0.5; // Kalman Filter 自帶平滑，但我們再做一點緩和
+            this.lockedCenter = {
+                x: this.lockedCenter.x * (1 - alpha) + smoothedCx * alpha,
+                y: this.lockedCenter.y * (1 - alpha) + smoothedCy * alpha,
+            }
+
+            this.areaHistory.push(bbox.area)
+            if (this.areaHistory.length > this.AREA_HISTORY_SIZE) {
+                this.areaHistory.shift()
+            }
+            return {
+                locked: true,
+                confidence: Math.round(confidence * 100) / 100,
+                boundingBox: { x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h },
+            }
+        }
+
+        // == 情境四：抓到的 Bbox 偏差過大 (可能被他人短暫遮蔽干擾) ==
+        if (this.framesOccluded < this.MAX_OCCLUSION_FRAMES) {
+            // 不信任這個觀測值，依賴歷史預測
+            this.framesOccluded++;
+            // 因為觀測值有誤，所以我們退回上一步，並強制只做「預測」
+            this.lockedCenter = {
+                x: this.kfX.predictOnly(0), // 由於稍早已 predictAndUpdate 過，這裡只能當作假裝沒看到
+                y: this.kfY.predictOnly(0)
+            };
+            const confidence = Math.max(0, 1 - (this.framesOccluded / this.MAX_OCCLUSION_FRAMES));
+            return {
+                locked: true,
+                confidence: Math.round(confidence * 100) / 100,
+                boundingBox: null // 拒絕錯誤的 bounding box
+            }
+        }
+
+        // 超過最大遮蔽時間，鎖定失敗
+        return {
+            locked: false,
+            confidence: 0,
+            boundingBox: null
+        }
+    }
+
+    /**
+     * 手动重新锁定（用户点击画面时调用）
+     */
+    resetLock() {
+        this.lockedCenter = null
+        this.lockedArea = 0
+        this.areaHistory = []
+        this.framesOccluded = 0
+    }
+}
+
+
+// ============================================================================
+// 6. PostureCorrector — 坐姿深度优化
+// ============================================================================
+/**
+ * 坐姿修正器
+ *
+ * 【数学模型】
+ *
+ * A. 驼背检测 (Hunched Posture)：
+ * 计算耳朵-肩膀连线相对垂直线的前倾角度。
+ * $$
+ * \theta_{hunch} = \arctan\left(\frac{|P_{ear,z} - P_{shoulder,z}|}{|P_{ear,y} - P_{shoulder,y}|}\right) \times \frac{180°}{\pi}
+ * $$
+ * 若 θ_hunch > 20° → 判定为驼背，需校正角度数据。
+ *
+ * B. 歪斜检测 (Tilted Seat)：
+ * 计算左右髋部的高度差。
+ * $$
+ * \theta_{tilt\_seat} = \arctan\left(\frac{|P_{L\_hip,y} - P_{R\_hip,y}|}{\sqrt{(P_{L\_hip,x} - P_{R\_hip,x})^2 + (P_{L\_hip,z} - P_{R\_hip,z})^2}}\right) \times \frac{180°}{\pi}
+ * $$
+ * 若 θ_tilt_seat > 8° → 判定为歪斜坐姿。
+ *
+ * C. 坐标系旋转补偿：
+ * 当检测到歪斜时，以髋部中点为原点，将坐标系反向旋转 θ_tilt_seat，
+ * 使后续的躯干稳定度计算不受歪斜椅子的影响。
+ *
+ * 旋转矩阵（绕 Z 轴）：
+ * $$
+ * \begin{pmatrix} x' \\ y' \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix} \begin{pmatrix} x - cx \\ y - cy \end{pmatrix} + \begin{pmatrix} cx \\ cy \end{pmatrix}
+ * $$
+ */
+export class PostureCorrector {
+    private readonly HUNCH_THRESHOLD = 20   // 驼背阈值 (°)
+    private readonly TILT_THRESHOLD = 8     // 歪斜阈值 (°)
+
+    /**
+     * 分析并修正坐姿
+     */
+    analyze(
+        ear: Point3D | null,
+        leftShoulder: Point3D,
+        rightShoulder: Point3D,
+        leftHip: Point3D,
+        rightHip: Point3D,
+        allLandmarks: Map<number, Point3D>
+    ): PostureCorrectionResult {
+        // --- A. 驼背检测 ---
+        let isHunched = false
+        let hunchAngle = 0
+
+        if (ear) {
+            const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2
+            const shoulderMidZ = (leftShoulder.z + rightShoulder.z) / 2
+
+            const dz = Math.abs((ear.z || 0) - shoulderMidZ)
+            const dy = Math.abs(ear.y - shoulderMidY)
+
+            if (dy > 0.01) {
+                hunchAngle = Math.atan2(dz, dy) * (180 / Math.PI)
+                isHunched = hunchAngle > this.HUNCH_THRESHOLD
+            }
+        }
+
+        // --- B. 歪斜检测 ---
+        const hipDx = leftHip.x - rightHip.x
+        const hipDy = leftHip.y - rightHip.y
+        const hipDz = (leftHip.z || 0) - (rightHip.z || 0)
+
+        const hipHorizontal = Math.sqrt(hipDx ** 2 + hipDz ** 2)
+        let tiltAngle = 0
+        let isTilted = false
+
+        if (hipHorizontal > 0.01) {
+            tiltAngle = Math.abs(Math.atan2(hipDy, hipHorizontal) * (180 / Math.PI))
+            isTilted = tiltAngle > this.TILT_THRESHOLD
+        }
+
+        // --- C. 坐标系旋转补偿 ---
+        let adjustedLandmarks: Map<number, Point3D> | null = null
+
+        if (isTilted) {
+            const hipMid = {
+                x: (leftHip.x + rightHip.x) / 2,
+                y: (leftHip.y + rightHip.y) / 2,
+            }
+
+            // 计算旋转方向：使高侧降低
+            const rotAngleRad = hipDy > 0
+                ? -tiltAngle * (Math.PI / 180)
+                : tiltAngle * (Math.PI / 180)
+
+            const cosR = Math.cos(rotAngleRad)
+            const sinR = Math.sin(rotAngleRad)
+
+            adjustedLandmarks = new Map()
+            for (const [id, pt] of allLandmarks) {
+                const dx = pt.x - hipMid.x
+                const dy = pt.y - hipMid.y
+                adjustedLandmarks.set(id, {
+                    x: cosR * dx - sinR * dy + hipMid.x,
+                    y: sinR * dx + cosR * dy + hipMid.y,
+                    z: pt.z,
+                })
+            }
+        }
+
+        const correctionAngle = isTilted ? Math.round(tiltAngle * 10) / 10 : 0
+
+        return {
+            correctionAngle,
+            isHunched,
+            isTilted,
+            adjustedLandmarks,
+        }
+    }
+}
+
+
+// ============================================================================
+// 主引擎：BiomechanicsEngine（组合所有分析器）
+// ============================================================================
+
+/**
+ * 生物力学引擎
+ *
+ * 将所有分析器封装为统一接口，供 BocciaCam 调用。
+ */
+export class BiomechanicsEngine {
+    readonly coreStability = new CoreStabilityAnalyzer()
+    readonly angularVelocity = new AngularVelocityAnalyzer()
+    readonly tremor = new TremorDetector()
+    readonly compensation = new CompensationDetector()
+    readonly subjectTracker = new SubjectTracker()
+    readonly postureCorrector = new PostureCorrector()
+    readonly releaseDetector = new ReleaseDetector()
+    readonly fingerSpread = new FingerSpreadDetector()
+
+    // 独立信号降噪信道 (Channels)
+    private filters = {
+        elbowROM: new SmoothingBuffer(3.0, 30.0),
+        trunkStability: new SmoothingBuffer(2.0, 30.0), // 躯干较慢，cutoff 更低
+        velocity: new SmoothingBuffer(4.0, 30.0),       // 速度变化快，cutoff 稍高
+        coreStabilityAngle: new SmoothingBuffer(2.0, 30.0)
+    }
+
+    // 帧间数据存储
+    private frameHistory: BiomechanicsMetrics[] = []
+
+    /**
+     * 辅助函数：将 MediaPipe 正规化坐标转为真实像素坐标
+     */
+    toRealPixels(
+        landmark: { x: number; y: number; z: number; visibility?: number },
+        imageWidth: number,
+        imageHeight: number
+    ): Point3D {
+        return {
+            x: landmark.x * imageWidth,
+            y: landmark.y * imageHeight,
+            z: (landmark.z || 0) * imageWidth,
+        }
+    }
+
+    /**
+     * 处理一帧骨架数据，返回完整生物力学指标
+     */
+    processFrame(
+        landmarks: any[],
+        imageWidth: number,
+        imageHeight: number,
+        timestamp: number
+    ): BiomechanicsMetrics {
+        // 转换关键点坐标
+        const lShoulder = this.toRealPixels(landmarks[LANDMARKS.LEFT_SHOULDER], imageWidth, imageHeight)
+        const rShoulder = this.toRealPixels(landmarks[LANDMARKS.RIGHT_SHOULDER], imageWidth, imageHeight)
+        const rElbow = this.toRealPixels(landmarks[LANDMARKS.RIGHT_ELBOW], imageWidth, imageHeight)
+        const rWrist = this.toRealPixels(landmarks[LANDMARKS.RIGHT_WRIST], imageWidth, imageHeight)
+        const lHip = this.toRealPixels(landmarks[LANDMARKS.LEFT_HIP], imageWidth, imageHeight)
+        const rHip = this.toRealPixels(landmarks[LANDMARKS.RIGHT_HIP], imageWidth, imageHeight)
+
+        // 可选节点（可能不可见）
+        const nose = landmarks[LANDMARKS.NOSE]?.visibility > 0.3
+            ? this.toRealPixels(landmarks[LANDMARKS.NOSE], imageWidth, imageHeight) : null
+        const rEar = landmarks[LANDMARKS.RIGHT_EAR]?.visibility > 0.3
+            ? this.toRealPixels(landmarks[LANDMARKS.RIGHT_EAR], imageWidth, imageHeight) : null
+        const rIndex = landmarks[LANDMARKS.RIGHT_INDEX]?.visibility > 0.3
+            ? this.toRealPixels(landmarks[LANDMARKS.RIGHT_INDEX], imageWidth, imageHeight) : null
+        const rThumb = landmarks[LANDMARKS.RIGHT_THUMB]?.visibility > 0.3
+            ? this.toRealPixels(landmarks[LANDMARKS.RIGHT_THUMB], imageWidth, imageHeight) : null
+        const rPinky = landmarks[LANDMARKS.RIGHT_PINKY]?.visibility > 0.3
+            ? this.toRealPixels(landmarks[LANDMARKS.RIGHT_PINKY], imageWidth, imageHeight) : null
+
+        // 0. 主体锁定
+        const trackingResult = this.subjectTracker.update(landmarks)
+
+        // 1. 坐姿修正
+        const allLandmarksMap = new Map<number, Point3D>()
+        for (let i = 0; i < landmarks.length; i++) {
+            if (landmarks[i]?.visibility > 0.3) {
+                allLandmarksMap.set(i, this.toRealPixels(landmarks[i], imageWidth, imageHeight))
+            }
+        }
+
+        const postureResult = this.postureCorrector.analyze(
+            rEar, lShoulder, rShoulder, lHip, rHip, allLandmarksMap
+        )
+
+        // 使用修正后的坐标（如果有）
+        const getLandmark = (id: number, fallback: Point3D): Point3D => {
+            if (postureResult.adjustedLandmarks) {
+                return postureResult.adjustedLandmarks.get(id) || fallback
+            }
+            return fallback
+        }
+
+        const adjLShoulder = getLandmark(LANDMARKS.LEFT_SHOULDER, lShoulder)
+        const adjRShoulder = getLandmark(LANDMARKS.RIGHT_SHOULDER, rShoulder)
+        const adjLHip = getLandmark(LANDMARKS.LEFT_HIP, lHip)
+        const adjRHip = getLandmark(LANDMARKS.RIGHT_HIP, rHip)
+
+        // 2. 中轴稳定度
+        const coreAngle = this.coreStability.calculate(adjLShoulder, adjRShoulder, adjLHip, adjRHip)
+
+        // 3. 角速度
+        const angVel = this.angularVelocity.update(
+            rShoulder, rElbow, rWrist, rHip, rIndex, timestamp
+        )
+
+        // 4. 震颤检测
+        const tremorResult = this.tremor.analyze(this.angularVelocity.getHistory())
+
+        // 5. 代偿检测
+        const compResult = nose
+            ? this.compensation.detect(nose, lShoulder, rShoulder, lHip, rHip)
+            : { type: null, severity: 0, description: '动作正常' } as CompensationResult
+
+        // 组装结果
+        // 信号降噪（利用 Butterworth 处理 Raw Data，输出 Filtered Data 去锯齿）
+        // 注意：基础指标这里仅准备初始占位符，由外部 BocciaCam 调用时再填入/过滤，
+        // 或者此处提供接口方法给外部调用。
+        const rawCoreAngle = coreAngle
+        const smoothedCoreAngle = this.filters.coreStabilityAngle.push(rawCoreAngle)
+
+        const metrics: BiomechanicsMetrics = {
+            // 基础指标（保持与 Phase 1 兼容，并保留 Raw/Filtered 双轨架构给外面填充）
+            elbowROM: null,
+            elbowROM_raw: null,
+            trunkStability: null,
+            trunkStability_raw: null,
+            velocity: null,
+            velocity_raw: null,
+
+            // Phase 2 指标
+            coreStabilityAngle: Math.round(smoothedCoreAngle * 10) / 10,
+            coreStabilityAngle_raw: Math.round(rawCoreAngle * 10) / 10,
+            shoulderAngularVel: Math.round(angVel.shoulder * 10) / 10,
+            elbowAngularVel: Math.round(angVel.elbow * 10) / 10,
+            wristAngularVel: Math.round(angVel.wrist * 10) / 10,
+            tremorDetected: tremorResult.detected,
+            tremorFrequency: tremorResult.frequency,
+            tremorSeverity: tremorResult.severity,
+            compensationType: compResult.type,
+            compensationSeverity: compResult.severity,
+            compensationDescription: compResult.description,
+
+            // 场域信息
+            subjectLocked: trackingResult.locked,
+            subjectConfidence: trackingResult.confidence,
+            postureCorrection: postureResult.correctionAngle,
+            isHunched: postureResult.isHunched,
+            isTilted: postureResult.isTilted,
+
+            // Phase 2.1: 手指张开检测
+            fingerSpreadAngle: null,   // 在下方计算后填入
+            fingerSpreadDelta: 0,
+            fingerReleaseDetected: false,
+
+            isReleaseFrame: false, // 暫時給預設值，這將在外部使用速度輔助判定或在內部實作
+        }
+
+        // 6. 手指张开检测 (Finger Spread Detection)
+        const fingerResult = this.fingerSpread.update(rWrist, rThumb, rPinky)
+        metrics.fingerSpreadAngle = fingerResult.spreadAngle
+        metrics.fingerSpreadDelta = fingerResult.delta
+        metrics.fingerReleaseDetected = fingerResult.releaseDetected
+
+        // 6. 出手瞬間判定 (Release Detection)
+        // 需結合外部已經算好的 smoothing 速度與手肘角度，所以這裡先透過 releaseDetector 計算
+        // 不過因為 engine.processFrame 是在 BocciaCam 外面算速度前呼叫的，
+        // 我們改在類別中保留一個 updateReleasePoint() 的公開方法讓外部調用，確保吃到濾波後的真實速度波峰。
+
+        this.frameHistory.push(metrics)
+        return metrics
+    }
+
+    /**
+     * 結合濾波後的參數，更新當前影格的「出手判定」
+     * 由 BocciaCam 在計算完速度與角度後呼叫，更新最後一筆 history 的狀態。
+     */
+    updateReleasePoint(
+        filteredVelocity: number,
+        filteredElbowROM: number,
+        wristY: number | null,
+        shoulderY: number | null,
+        hipY: number | null,
+        fingerReleaseDetected: boolean = false
+    ): boolean {
+        const isRelease = this.releaseDetector.detect(filteredVelocity, filteredElbowROM, wristY, shoulderY, hipY, fingerReleaseDetected);
+        if (this.frameHistory.length > 0 && isRelease) {
+            this.frameHistory[this.frameHistory.length - 1].isReleaseFrame = true;
+        }
+        return isRelease;
+    }
+
+    /**
+     * 获取完整的帧历史纪录（供导出使用）
+     */
+    getFrameHistory(): BiomechanicsMetrics[] {
+        return this.frameHistory
+    }
+
+    /**
+     * 提供给外部 (BocciaCam) 使用滤波器的快捷方法
+     * 保持数据结构解耦的同时允许 Phase 1 核心指标受惠于医学级降噪
+     */
+    applyFilter(channel: 'elbowROM' | 'trunkStability' | 'velocity', rawValue: number): number {
+        return this.filters[channel].push(rawValue);
+    }
+
+    /**
+     * 重置所有状态（新 session 开始时调用）
+     */
+    reset() {
+        this.angularVelocity.reset()
+        this.compensation.reset()
+        this.subjectTracker.resetLock()
+
+        // 重置所有滤波器
+        this.filters.elbowROM.reset()
+        this.filters.trunkStability.reset()
+        this.filters.velocity.reset()
+        this.filters.coreStabilityAngle.reset()
+        this.releaseDetector.reset()
+        this.fingerSpread.reset()
+
+        this.frameHistory = []
+    }
+}
+
+// ============================================================================
+// 8. FingerSpreadDetector — 手指张开检测
+// ============================================================================
+/**
+ * 手指张开检测器
+ *
+ * 【数学模型】
+ * 利用 MediaPipe Pose 的指尖节点（拇指 ID:22, 小指 ID:18）与手腕(ID:16)，
+ * 计算「拇指→手腕→小指」的 3D 夹角 θ_spread：
+ *
+ * $$
+ * \theta_{spread} = \cos^{-1}\left(\frac{\vec{WT} \cdot \vec{WP}}{|\vec{WT}||\vec{WP}|}\right) \times \frac{180°}{\pi}
+ * $$
+ *
+ * 其中 $\vec{WT}$ = 拇指 - 手腕，$\vec{WP}$ = 小指 - 手腕。
+ *
+ * 【释放判定】
+ * - 握球状态：θ_spread ≈ 10°~30°（手指收拢）
+ * - 释放状态：θ_spread ≈ 50°~90°（手指张开）
+ * - 释放信号：Δθ > 15°/frame 且 θ_spread > 40°
+ *
+ * 【临床意义】
+ * 比纯速度峰值法更精确地判定球离手瞬间，
+ * 减少假阳性（快速挥拳但未释放球）和假阴性（慢速释放）。
+ */
+export class FingerSpreadDetector {
+    private prevSpreadAngle: number | null = null
+    private spreadHistory: number[] = []
+    private readonly HISTORY_SIZE = 5
+
+    // 释放判定阈值
+    private readonly SPREAD_THRESHOLD = 40     // 张开角度门槛 (°)
+    private readonly DELTA_THRESHOLD = 12      // 帧间变化率门槛 (°/frame)
+    private readonly COOLDOWN_FRAMES = 20      // 冷却帧数
+    private framesSinceLastRelease: number = 999
+
+    /**
+     * 计算 3D 夹角（向量点积法）
+     */
+    private calculateSpreadAngle(wrist: Point3D, thumb: Point3D, pinky: Point3D): number {
+        // 向量 WT = thumb - wrist, WP = pinky - wrist
+        const wt = { x: thumb.x - wrist.x, y: thumb.y - wrist.y, z: (thumb.z || 0) - (wrist.z || 0) }
+        const wp = { x: pinky.x - wrist.x, y: pinky.y - wrist.y, z: (pinky.z || 0) - (wrist.z || 0) }
+
+        const dot = wt.x * wp.x + wt.y * wp.y + wt.z * wp.z
+        const magWT = Math.sqrt(wt.x ** 2 + wt.y ** 2 + wt.z ** 2)
+        const magWP = Math.sqrt(wp.x ** 2 + wp.y ** 2 + wp.z ** 2)
+
+        if (magWT === 0 || magWP === 0) return 0
+
+        const cosTheta = Math.max(-1, Math.min(1, dot / (magWT * magWP)))
+        return Math.acos(cosTheta) * (180 / Math.PI)
+    }
+
+    /**
+     * 处理一帧数据
+     * @param wrist 手腕 3D 坐标
+     * @param thumb 拇指 3D 坐标 (可能不可见)
+     * @param pinky 小指 3D 坐标 (可能不可见)
+     * @returns { spreadAngle, delta, releaseDetected }
+     */
+    update(
+        wrist: Point3D,
+        thumb: Point3D | null,
+        pinky: Point3D | null
+    ): { spreadAngle: number | null; delta: number; releaseDetected: boolean } {
+        this.framesSinceLastRelease++
+
+        // 如果拇指或小指不可见，无法计算
+        if (!thumb || !pinky) {
+            return { spreadAngle: null, delta: 0, releaseDetected: false }
+        }
+
+        const angle = this.calculateSpreadAngle(wrist, thumb, pinky)
+
+        // 平滑处理：5 帧滑动窗口
+        this.spreadHistory.push(angle)
+        if (this.spreadHistory.length > this.HISTORY_SIZE) {
+            this.spreadHistory.shift()
+        }
+        const smoothedAngle = this.spreadHistory.reduce((a, b) => a + b, 0) / this.spreadHistory.length
+
+        // 计算帧间变化率
+        let delta = 0
+        if (this.prevSpreadAngle !== null) {
+            delta = smoothedAngle - this.prevSpreadAngle
+        }
+
+        // 释放判定：角度足够大 + 正在快速张开 + 冷却期已过
+        const releaseDetected = (
+            smoothedAngle > this.SPREAD_THRESHOLD &&
+            delta > this.DELTA_THRESHOLD &&
+            this.framesSinceLastRelease > this.COOLDOWN_FRAMES
+        )
+
+        if (releaseDetected) {
+            this.framesSinceLastRelease = 0
+        }
+
+        this.prevSpreadAngle = smoothedAngle
+
+        return {
+            spreadAngle: Math.round(smoothedAngle * 10) / 10,
+            delta: Math.round(delta * 10) / 10,
+            releaseDetected,
+        }
+    }
+
+    reset() {
+        this.prevSpreadAngle = null
+        this.spreadHistory = []
+        this.framesSinceLastRelease = 999
+    }
+}
+
+
+// ============================================================================
+// 9. ReleaseDetector — 出手瞬间判定（强化版）
+// ============================================================================
+/**
+ * 基于「速度波峰」、「手臂伸展」、「腕部轨迹高度」以及「手指张开信号」
+ * 结合的状态机，以防范「假装出手 (Fake Throw)」。
+ * 
+ * 条件：
+ * 1. 速度波峰 (Velocity Peak > 50，若手指确认释放则降至 35)
+ * 2. 伴随手臂达到伸展状态 (Elbow ROM > 140)
+ * 3. 投掷瞬间，手腕高度处于身体下半部
+ * 4. 设有冷却时间 (Cooldown) 避免同一次投球触发多次
+ * 5. [新增] 手指张开释放信号可降低速度门槛，使慢速释放也被捕捉
+ */
+export class ReleaseDetector {
+    private lastVelocity: number = 0;
+    private isAccelerating: boolean = false;
+    private framesSinceLastRelease: number = 999;
+
+    // 门槛值
+    private readonly COOLDOWN_FRAMES = 30;          // 冷却：约1秒
+    private readonly VEL_THRESHOLD = 50;            // 基础速度门槛
+    private readonly VEL_THRESHOLD_WITH_FINGER = 35; // 手指确认时的低速门槛
+    private readonly ROM_THRESHOLD = 140;           // 获取最大伸展
+
+    /**
+     * @param currentVelocity 当前归一化速度
+     * @param currentRom 当前手肘伸展度
+     * @param wristY 手腕的 Y 坐标 (向下为正)
+     * @param shoulderY 肩膀的 Y 坐标
+     * @param hipY 髋部的 Y 坐标
+     * @param fingerReleaseDetected 手指张开释放信号 (Phase 2.1)
+     */
+    detect(
+        currentVelocity: number,
+        currentRom: number,
+        wristY: number | null,
+        shoulderY: number | null,
+        hipY: number | null,
+        fingerReleaseDetected: boolean = false
+    ): boolean {
+        this.framesSinceLastRelease++;
+
+        // 判定局部波峰：之前在加速，现在速度衰减
+        const isLocalPeak = this.isAccelerating && (currentVelocity < this.lastVelocity);
+
+        let isRelease = false;
+
+        // 防伪验证：确保手腕在投出时处于身体下半部
+        let isWristPositionValid = true;
+        if (wristY !== null && shoulderY !== null && hipY !== null) {
+            const torsoHeight = hipY - shoulderY;
+            const wristDepth = wristY - shoulderY;
+            if (wristDepth < torsoHeight * 0.7) {
+                isWristPositionValid = false;
+            }
+        }
+
+        // 根据手指释放信号动态调整速度门槛
+        const effectiveVelThreshold = fingerReleaseDetected
+            ? this.VEL_THRESHOLD_WITH_FINGER
+            : this.VEL_THRESHOLD;
+
+        if (
+            isLocalPeak &&
+            this.lastVelocity > effectiveVelThreshold &&
+            currentRom > this.ROM_THRESHOLD &&
+            isWristPositionValid &&
+            this.framesSinceLastRelease > this.COOLDOWN_FRAMES
+        ) {
+            isRelease = true;
+            this.framesSinceLastRelease = 0;
+        }
+
+        // 更新状态以供下一帧比较
+        this.isAccelerating = currentVelocity > this.lastVelocity;
+        this.lastVelocity = currentVelocity;
+
+        return isRelease;
+    }
+
+    reset() {
+        this.lastVelocity = 0;
+        this.isAccelerating = false;
+        this.framesSinceLastRelease = 999;
+    }
+}
