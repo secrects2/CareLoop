@@ -302,8 +302,22 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                 heightLeft -= (pageHeight - margin * 2)
             }
 
-            const fileName = `AI運動分析_${patientName || '長者'}_${new Date().toISOString().slice(0, 10)}.pdf`
-            pdf.save(fileName)
+            // LINE LIFF WebView 不支援 <a download>，改用 Blob URL 開新分頁
+            const pdfBlob = pdf.output('blob')
+            const blobUrl = URL.createObjectURL(pdfBlob)
+
+            // 嘗試用 <a> download，如果失敗就 window.open
+            const link = document.createElement('a')
+            link.href = blobUrl
+            link.download = `AI運動分析_${patientName || '長者'}_${new Date().toISOString().slice(0, 10)}.pdf`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+
+            // 備用方案：LINE 如果攔截了 download，直接開新視窗
+            setTimeout(() => {
+                window.open(blobUrl, '_blank')
+            }, 500)
         } catch (err) {
             console.error('PDF 產生失敗:', err)
             alert('PDF 產生失敗，請稍後再試。')
