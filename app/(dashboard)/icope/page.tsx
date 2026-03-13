@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import type { AssessmentWithDetails } from '@/types/icope'
 import { STAGE_LABELS, PRIMARY_DOMAIN_LABELS, type PrimaryDomain } from '@/types/icope'
 import CaseDashboard from '@/components/icope/CaseDashboard'
+import BillingExportButton from '@/components/icope/BillingExportButton'
 
 type Tab = 'dashboard' | 'assessments'
 
@@ -57,14 +58,17 @@ export default function IcopePage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-white">📋 ICOPE 評估</h1>
                     <p className="text-slate-400 text-sm mt-1">長者內在能力檢測前後測管理</p>
                 </div>
-                <Link href="/icope/new" className="btn-accent text-sm">
-                    + 新增評估
-                </Link>
+                <div className="flex items-center gap-2">
+                    <BillingExportButton variant="compact" />
+                    <Link href="/icope/new" className="btn-accent text-sm">
+                        + 新增評估
+                    </Link>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -128,8 +132,8 @@ export default function IcopePage() {
                                                         {(a.patients as any)?.name || '未知'}
                                                     </p>
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${a.stage === 'initial'
-                                                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                                         }`}>
                                                         {STAGE_LABELS[a.stage]}
                                                     </span>
