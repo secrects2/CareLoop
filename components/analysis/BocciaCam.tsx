@@ -4,6 +4,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react'
 import Webcam from 'react-webcam'
 import { BiomechanicsEngine, type BiomechanicsMetrics } from '@/lib/analysis/biomechanics-engine'
 import { downloadFramesCSV, downloadSummaryCSV, downloadExcel, type SessionSummary } from '@/lib/export/data-export'
+import AnalysisReport from '@/components/analysis/AnalysisReport'
+import { type AnalysisMetrics } from '@/lib/analysis/ai-prescription'
 
 // Stubs for modules not available in EPA Tool (originally from BocciaCam project)
 async function saveRehabSession(_params: any): Promise<{ success: boolean; sessionId?: string; error?: string }> {
@@ -207,6 +209,8 @@ export default function BocciaCam({
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [reportMetrics, setReportMetrics] = useState<AnalysisMetrics | null>(null)
+    const [reportDuration, setReportDuration] = useState(0)
 
     // 隊伍色彩
     const sideColors = side === 'red'
@@ -618,12 +622,9 @@ export default function BocciaCam({
 
             if (result.success && result.sessionId) {
                 setSaved(true)
-                // Show Report instead of closing immediately
-                setSessionReport({
-                    session_id: result.sessionId,
-                    metrics: metricsPayload,
-                    prescription: aiPrescription
-                })
+                // 顯示 AI 分析報告
+                setReportMetrics(metricsPayload as unknown as AnalysisMetrics)
+                setReportDuration(durationSeconds)
             } else {
                 setError(result.error || '儲存失敗')
             }
@@ -692,165 +693,14 @@ export default function BocciaCam({
         facingMode: 'environment'
     }), [])
 
-    // Render Report View if sessionReport exists
-    if (sessionReport) {
+    // 顯示 AI 分析報告（全頁式）
+    if (reportMetrics) {
         return (
-            <div className={`relative bg-gray-900 flex flex-col items-center justify-start p-4 pt-8 h-full overflow-y-auto ${className}`}>
-                <div className="bg-card rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5 animate-fade-in-up">
-                    <div className="text-center border-b pb-4 border-border/50">
-                        <h3 className="text-2xl font-extrabold text-foreground">📊 AI 檢測報告</h3>
-                        <p className="text-sm text-muted-foreground mt-1">Detection Complete — 3D 空間向量分析</p>
-                    </div>
-
-                    {/* 3 Metrics Grid */}
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="text-center p-3 bg-background rounded-xl">
-                            <p className="text-xs text-muted-foreground mb-1">手肘 ROM</p>
-                            <p className={`text-2xl font-extrabold ${sessionReport.metrics.avg_rom < 160 ? 'text-orange-500' : 'text-foreground'}`}>
-                                {sessionReport.metrics.avg_rom}°
-                            </p>
-                        </div>
-                        <div className="text-center p-3 bg-background rounded-xl">
-                            <p className="text-xs text-muted-foreground mb-1">軀幹傾斜</p>
-                            <p className={`text-2xl font-extrabold ${sessionReport.metrics.avg_trunk_tilt > 15 ? 'text-red-500' : 'text-foreground'}`}>
-                                {sessionReport.metrics.avg_trunk_tilt}°
-                            </p>
-                        </div>
-                        <div className="text-center p-3 bg-background rounded-xl">
-                            <p className="text-xs text-muted-foreground mb-1">出手速度</p>
-                            <p className="text-2xl font-extrabold text-emerald-600">
-                                {sessionReport.metrics.avg_velocity}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* 穩定率 */}
-                    <div className="flex items-center justify-between p-3 bg-background rounded-xl">
-                        <span className="text-sm font-bold text-gray-600">動作穩定率</span>
-                        <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all ${(sessionReport.metrics.stable_ratio || 0) >= 70 ? 'bg-green-500' : (sessionReport.metrics.stable_ratio || 0) >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                    style={{ width: `${sessionReport.metrics.stable_ratio || 0}%` }}
-                                />
-                            </div>
-                            <span className="text-lg font-extrabold text-foreground">{sessionReport.metrics.stable_ratio || 0}%</span>
-                        </div>
-                    </div>
-
-                    {/* 進階生物力學數據 */}
-                    <div className="rounded-xl border border-border overflow-hidden">
-                        <div className="bg-background px-4 py-2 border-b border-border">
-                            <h5 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">進階生物力學數據</h5>
-                        </div>
-                        <div className="p-3 space-y-2">
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="p-2 bg-background rounded-lg text-center">
-                                    <p className="text-[10px] text-muted-foreground">中軸偏移</p>
-                                    <p className={`text-lg font-bold ${(sessionReport.metrics.core_stability_angle || 0) > 15 ? 'text-red-500' : 'text-cyan-600'}`}>
-                                        {sessionReport.metrics.core_stability_angle ?? '--'}°
-                                    </p>
-                                </div>
-                                <div className="p-2 bg-background rounded-lg text-center">
-                                    <p className="text-[10px] text-muted-foreground">震顫</p>
-                                    <p className={`text-lg font-bold ${(sessionReport.metrics.tremor_detected_ratio || 0) > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                        {sessionReport.metrics.tremor_detected_ratio != null ? `${sessionReport.metrics.tremor_detected_ratio}%` : '無'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="p-2 bg-background rounded-lg text-center">
-                                    <p className="text-[10px] text-muted-foreground">肩角速</p>
-                                    <p className="text-sm font-bold text-purple-600">{sessionReport.metrics.avg_shoulder_angular_vel ?? '--'}°/s</p>
-                                </div>
-                                <div className="p-2 bg-background rounded-lg text-center">
-                                    <p className="text-[10px] text-muted-foreground">肘角速</p>
-                                    <p className="text-sm font-bold text-purple-600">{sessionReport.metrics.avg_elbow_angular_vel ?? '--'}°/s</p>
-                                </div>
-                                <div className="p-2 bg-background rounded-lg text-center">
-                                    <p className="text-[10px] text-muted-foreground">腕角速</p>
-                                    <p className="text-sm font-bold text-purple-600">{sessionReport.metrics.avg_wrist_angular_vel ?? '--'}°/s</p>
-                                </div>
-                            </div>
-                            {(sessionReport.metrics.compensation_detected_ratio || 0) > 0 && (
-                                <div className="p-2 bg-orange-50 rounded-lg border border-orange-100 flex items-center gap-2">
-                                    <span className="text-orange-500">⚠️</span>
-                                    <div>
-                                        <p className="text-xs font-bold text-orange-700">代償動作 {sessionReport.metrics.compensation_detected_ratio}%</p>
-                                        {sessionReport.metrics.compensation_types?.length > 0 && (
-                                            <p className="text-[10px] text-orange-500">{sessionReport.metrics.compensation_types.join(', ')}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 手動標記的每球快照 */}
-                    {sessionReport.metrics.throw_marks?.length > 0 && (
-                        <div className="rounded-xl border border-amber-200 overflow-hidden">
-                            <div className="bg-amber-50 px-4 py-2 border-b border-amber-200">
-                                <h5 className="text-xs font-bold text-amber-700 uppercase tracking-widest">📌 手動標記投球 ({sessionReport.metrics.manual_throw_count} 球)</h5>
-                            </div>
-                            <div className="p-3 space-y-2">
-                                {sessionReport.metrics.throw_marks.map((t: any, i: number) => (
-                                    <div key={i} className="flex items-center justify-between p-2 bg-amber-50/50 rounded-lg text-sm">
-                                        <span className="font-bold text-amber-700">#{i + 1}</span>
-                                        <span className="text-gray-600">ROM {t.rom}°</span>
-                                        <span className="text-gray-600">傾斜 {t.tilt}°</span>
-                                        <span className="text-emerald-600 font-bold">速度 {t.velocity}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* AI 處方卡片 */}
-                    <div className={`p-5 rounded-xl border-l-4 ${sessionReport.prescription.color} bg-card shadow-sm`}>
-                        <h4 className="font-bold text-lg mb-2">{sessionReport.prescription.title}</h4>
-                        <p className="text-sm opacity-90">{sessionReport.prescription.content}</p>
-                        {sessionReport.prescription.references && sessionReport.prescription.references.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-border/50">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">📚 學術依據 References</p>
-                                {sessionReport.prescription.references.map((ref: string, idx: number) => (
-                                    <p key={idx} className="text-[10px] text-muted-foreground leading-relaxed">[{idx + 1}] {ref}</p>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* AI 智能推薦 - 與長者詳情頁一致 */}
-                    {sessionReport.prescription.recommendedProducts && sessionReport.prescription.recommendedProducts.length > 0 && (
-                        <div className="p-5 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-card relative overflow-hidden">
-                            <div className="absolute -top-4 -right-4 text-7xl opacity-5">💡</div>
-                            <h4 className="font-bold text-base text-indigo-900 mb-3 flex items-center gap-2 relative z-10">
-                                <span>✨</span> AI 智能推薦
-                            </h4>
-                            <div className="space-y-2 relative z-10">
-                                {sessionReport.prescription.recommendedProducts.map((product: any, idx: number) => (
-                                    <div key={idx} className="bg-card/90 backdrop-blur-sm p-3 rounded-xl flex items-center gap-3 shadow-card border border-indigo-50">
-                                        <div className="text-2xl bg-indigo-50/50 w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0">{product.icon}</div>
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-foreground text-sm">{product.name}</p>
-                                            <p className="text-xs text-gray-600 mt-0.5">{product.reason}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-
-
-
-                    <button
-                        onClick={onClose}
-                        className="w-full py-4 rounded-xl bg-gray-900 text-white font-bold text-lg hover:bg-black transition-colors shadow-lg mt-2"
-                    >
-                        關閉並返回
-                    </button>
-                </div>
-            </div>
+            <AnalysisReport
+                metrics={reportMetrics}
+                durationSeconds={reportDuration}
+                onClose={() => { setReportMetrics(null); onClose?.() }}
+            />
         )
     }
 
