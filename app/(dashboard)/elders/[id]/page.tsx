@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { logActivity } from '@/lib/activity-log'
 
 interface Elder {
     id: string
@@ -79,6 +80,7 @@ export default function ElderDetailPage() {
             a.click()
             URL.revokeObjectURL(url)
             toast.success('Excel 匯出成功！')
+            logActivity('匯出 Excel', `長輩: ${elder?.name}`, 'elder', elderId)
         } catch (err) {
             toast.error('匯出失敗，請重試')
         }
@@ -93,6 +95,7 @@ export default function ElderDetailPage() {
             toast.error('刪除失敗')
         } else {
             toast.success('已刪除')
+            logActivity('刪除長輩', `姓名: ${elder?.name}`, 'elder', elderId)
             router.push('/elders')
         }
     }

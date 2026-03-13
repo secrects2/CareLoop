@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { BiomechanicsEngine, BiomechanicsMetrics, LANDMARKS } from '@/lib/analysis/biomechanics-engine'
+import { logActivity } from '@/lib/activity-log'
 
 type TestType = 'pre' | 'post' | 'practice'
 
@@ -153,6 +154,7 @@ export default function AnalysisPage() {
             processFrame()
 
             toast.success('分析已啟動')
+            logActivity('開始 AI 分析', `長輩: ${elderName}, 類型: ${testType}`, 'analysis', elderId)
         } catch (err: any) {
             toast.error('無法啟動攝影機: ' + (err.message || '未知錯誤'))
         }
@@ -267,6 +269,7 @@ export default function AnalysisPage() {
             toast.error('儲存失敗: ' + error.message)
         } else {
             toast.success('分析數據已儲存！')
+            logActivity('儲存分析結果', `長輩: ${elderName}, 類型: ${testType}, 時長: ${elapsedSeconds}秒`, 'session', elderId)
             router.push(`/elders/${elderId}`)
         }
         setSaving(false)

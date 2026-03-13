@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { logActivity } from '@/lib/activity-log'
 
 interface Elder {
     id: string
@@ -77,6 +78,7 @@ export default function EldersPage() {
             toast.error('新增失敗: ' + error.message)
         } else {
             toast.success('長輩新增成功！')
+            logActivity('新增長輩', `姓名: ${formData.name.trim()}`, 'elder')
             setFormData({ name: '', gender: 'male', birth_date: '', notes: '' })
             setShowForm(false)
             fetchElders()
