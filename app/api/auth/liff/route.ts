@@ -86,7 +86,7 @@ export async function POST(request: Request) {
                     full_name: displayName,
                     avatar_url: pictureUrl || '',
                     email: lineEmail,
-                    role: 'user',
+                    role: 'instructor',
                     is_active: true,
                 }, { onConflict: 'id' })
         }
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
                 full_name: displayName,
                 avatar_url: pictureUrl || '',
                 email: lineEmail,
-                role: 'user',
+                role: 'instructor',
                 is_active: true,
             }, { onConflict: 'id' })
 

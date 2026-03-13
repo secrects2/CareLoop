@@ -30,7 +30,7 @@ export async function POST() {
                 email: user.email || '',
                 full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '指導員',
                 avatar_url: user.user_metadata?.avatar_url || '',
-                role: 'user',
+                role: 'instructor',
                 is_active: true,
             }, { onConflict: 'id' })
 
