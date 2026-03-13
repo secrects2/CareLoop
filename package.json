@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@hookform/resolvers": "^5.2.2",
+        "@line/liff": "^2.27.3",
         "@mediapipe/camera_utils": "^0.3.1675466862",
         "@mediapipe/drawing_utils": "^0.3.1675466124",
         "@mediapipe/pose": "^0.5.1675469404",
