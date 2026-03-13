@@ -9,6 +9,7 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@hookform/resolvers": "^5.2.2",
         "@mediapipe/camera_utils": "^0.3.1675466862",
         "@mediapipe/drawing_utils": "^0.3.1675466124",
         "@mediapipe/pose": "^0.5.1675469404",
@@ -20,10 +21,12 @@
         "next": "^15.1.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
+        "react-hook-form": "^7.71.2",
         "react-hot-toast": "^2.6.0",
         "react-webcam": "^7.2.0",
         "tailwind-merge": "^3.5.0",
-        "xlsx": "^0.18.5"
+        "xlsx": "^0.18.5",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@types/node": "^22.0.0",
