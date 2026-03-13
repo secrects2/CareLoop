@@ -270,7 +270,6 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
         setDownloading(true)
         try {
             const html2canvas = (await import('html2canvas')).default
-            const { jsPDF } = await import('jspdf')
 
             const canvas = await html2canvas(contentRef.current, {
                 scale: 2,
@@ -279,45 +278,55 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                 logging: false,
             })
 
-            const imgData = canvas.toDataURL('image/png')
-            const pdf = new jsPDF('p', 'mm', 'a4')
-            const pageWidth = pdf.internal.pageSize.getWidth()
-            const pageHeight = pdf.internal.pageSize.getHeight()
-            const imgWidth = pageWidth - 16 // 8mm margins
-            const imgHeight = (canvas.height * imgWidth) / canvas.width
-            const margin = 8
+            const fileName = `AI運動分析_${patientName || '長者'}_${new Date().toISOString().slice(0, 10)}`
 
-            let heightLeft = imgHeight
-            let position = margin
-
-            // First page
-            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight)
-            heightLeft -= (pageHeight - margin * 2)
-
-            // Additional pages if content is taller than one page
-            while (heightLeft > 0) {
-                position = -(imgHeight - heightLeft) + margin
-                pdf.addPage()
-                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight)
-                heightLeft -= (pageHeight - margin * 2)
+            // 策略 1: Web Share API（手機原生分享面板 — 支援存檔、傳 LINE、AirDrop 等）
+            if (navigator.share && navigator.canShare) {
+                try {
+                    const blob = await new Promise<Blob>((resolve) =>
+                        canvas.toBlob((b) => resolve(b!), 'image/png')
+                    )
+                    const file = new File([blob], `${fileName}.png`, { type: 'image/png' })
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: 'AI 運動表現分析報告',
+                            files: [file],
+                        })
+                        return // 成功，結束
+                    }
+                } catch (shareErr) {
+                    // 用戶取消分享或不支援，繼續往下走
+                    if ((shareErr as Error).name === 'AbortError') return
+                }
             }
 
-            // LINE LIFF WebView 不支援 <a download>，改用 Blob URL 開新分頁
-            const pdfBlob = pdf.output('blob')
-            const blobUrl = URL.createObjectURL(pdfBlob)
-
-            // 嘗試用 <a> download，如果失敗就 window.open
-            const link = document.createElement('a')
-            link.href = blobUrl
-            link.download = `AI運動分析_${patientName || '長者'}_${new Date().toISOString().slice(0, 10)}.pdf`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-
-            // 備用方案：LINE 如果攔截了 download，直接開新視窗
-            setTimeout(() => {
-                window.open(blobUrl, '_blank')
-            }, 500)
+            // 策略 2: 開新分頁顯示圖片（用戶可長按存圖）
+            const imgDataUrl = canvas.toDataURL('image/png')
+            const newWindow = window.open('', '_blank')
+            if (newWindow) {
+                newWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html><head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <title>${fileName}</title>
+                        <style>body{margin:0;background:#0f172a;display:flex;flex-direction:column;align-items:center;padding:16px}
+                        img{max-width:100%;height:auto;border-radius:8px}
+                        p{color:#94a3b8;font-family:sans-serif;font-size:14px;margin:16px 0}</style>
+                    </head><body>
+                        <p>📱 長按圖片即可儲存到手機</p>
+                        <img src="${imgDataUrl}" alt="AI 運動分析報告" />
+                    </body></html>
+                `)
+                newWindow.document.close()
+            } else {
+                // 策略 3: 無法開新視窗，直接用 data URL 下載
+                const link = document.createElement('a')
+                link.href = imgDataUrl
+                link.download = `${fileName}.png`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+            }
         } catch (err) {
             console.error('PDF 產生失敗:', err)
             alert('PDF 產生失敗，請稍後再試。')
@@ -340,7 +349,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                         disabled={downloading}
                         className="px-3 py-2 rounded-xl bg-primary-600/80 text-sm text-white hover:bg-primary-600 transition-colors disabled:opacity-50"
                     >
-                        {downloading ? '產生中...' : '📄 下載 PDF'}
+                        {downloading ? '產生中...' : '📤 儲存報告'}
                     </button>
                     <button onClick={onClose} className="px-3 py-2 rounded-xl bg-white/10 text-sm text-white hover:bg-white/20 transition-colors">
                         ✕ 關閉
