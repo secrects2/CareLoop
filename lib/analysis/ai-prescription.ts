@@ -1,6 +1,6 @@
 /**
- * AI 處方引擎 — 地板滾球分析報告
- * 根據分析數據產生個人化的運動建議處方
+ * AI 訓練建議引擎 — 地板滾球運動表現分析報告
+ * 根據分析數據產生個人化的運動訓練建議（非醫療建議）
  */
 
 // ============================================================================
@@ -59,6 +59,14 @@ export interface AiReport {
 // ============================================================================
 
 function assessOverall(m: AnalysisMetrics): OverallAssessment {
+    // 品質閘門—數據不足時不做評估
+    if (m.throw_count < 3 && m.avg_rom === 0) {
+        return {
+            level: '資料不足' as any, score: 0, color: '#6B7280',
+            summary: '本次分析數據量不足，無法做出可靠評估。建議完成至少 3 次投擲後再進行分析。'
+        }
+    }
+
     let score = 0
 
     // ROM 評分 (0-30)
@@ -82,9 +90,9 @@ function assessOverall(m: AnalysisMetrics): OverallAssessment {
     const compPenalty = Math.min(m.compensation_detected_ratio * 0.15, 10)
     score += Math.max(penaltyBase - tremorPenalty - compPenalty, 0)
 
-    if (score >= 85) return { level: '優秀', score, color: '#10B981', summary: '整體表現優異，關節活動度與軀幹穩定度均達理想水準。' }
+    if (score >= 85) return { level: '優秀', score, color: '#10B981', summary: '在目前量測條件下，各項指標表現良好。本評估基於即時影像分析，結果可能受環境因素影響。' }
     if (score >= 65) return { level: '良好', score, color: '#3B82F6', summary: '表現良好，部分指標可再強化，建議針對性訓練。' }
-    if (score >= 45) return { level: '待改善', score, color: '#F59E0B', summary: '有多項指標需要改善，建議增加訓練頻率並注意動作品質。' }
+    if (score >= 45) return { level: '待改善', score, color: '#F59E0B', summary: '有多項指標建議改善，可增加訓練頻率並注意動作品質。' }
     return { level: '需加強', score, color: '#EF4444', summary: '各項指標偏低，建議從基礎動作開始訓練，並在指導員協助下進行。' }
 }
 
@@ -115,13 +123,13 @@ function findConcerns(m: AnalysisMetrics): string[] {
 function generatePrescriptions(m: AnalysisMetrics): PrescriptionItem[] {
     const rx: PrescriptionItem[] = []
 
-    // ROM 不足 → 上肢伸展處方
+    // ROM 不足 → 上肢伸展建議
     if (m.avg_rom < 150) {
         rx.push({
             category: '關節活動度',
             icon: '💪',
-            title: '上肢關節伸展訓練',
-            description: `目前平均 ROM ${m.avg_rom}°，目標提升至 150° 以上`,
+            title: '上肢關節伸展建議',
+            description: `目前平均 ROM ${m.avg_rom}°，建議透過伸展運動逐步提升（參考值 ≥150°）`,
             exercises: [
                 '坐姿手臂前伸：雙手向前伸直，維持 5 秒，重複 10 次',
                 '坐姿過頭伸展：雙手高舉過頭，慢慢向後延伸',
@@ -138,8 +146,8 @@ function generatePrescriptions(m: AnalysisMetrics): PrescriptionItem[] {
         rx.push({
             category: '核心穩定',
             icon: '🧘',
-            title: '核心穩定度訓練',
-            description: `軀幹傾斜角度 ${m.avg_trunk_tilt}°，目標控制在 10° 以內`,
+            title: '核心穩定度訓練建議',
+            description: `軀幹傾斜角度 ${m.avg_trunk_tilt}°（建議參考值 ≤10°，此為工程經驗值、非臨床診斷標準）`,
             exercises: [
                 '坐姿骨盆旋轉：坐穩椅子，左右旋轉骨盆各 10 次',
                 '坐姿側彎回正：身體向一側傾斜後靠核心回正',
@@ -151,13 +159,13 @@ function generatePrescriptions(m: AnalysisMetrics): PrescriptionItem[] {
         })
     }
 
-    // 震顫 → 手部穩定訓練
+    // 手部不穩定 → 手部穩定訓練建議
     if (m.tremor_detected_ratio > 10) {
         rx.push({
             category: '手部控制',
             icon: '✋',
-            title: '手部穩定與精細控制訓練',
-            description: `震顫偵測率 ${m.tremor_detected_ratio}%，需加強手部穩定性`,
+            title: '手部穩定性練習建議',
+            description: `偵測到手部不穩定訊號（偵測率 ${m.tremor_detected_ratio}%）。本數據基於影像分析，受環境光線與裝置影響。`,
             exercises: [
                 '握球訓練：握軟球 5 秒 → 放鬆 3 秒，重複 15 次',
                 '指尖觸碰：食指逐一觸碰拇指，正反各做 3 輪',
@@ -169,17 +177,17 @@ function generatePrescriptions(m: AnalysisMetrics): PrescriptionItem[] {
         })
     }
 
-    // 代償 → 姿勢矯正
+    // 代償 → 動作調整建議
     if (m.compensation_detected_ratio > 15) {
         rx.push({
-            category: '動作矯正',
+            category: '動作調整',
             icon: '🎯',
-            title: '投擲姿勢矯正訓練',
-            description: `代償動作佔比 ${m.compensation_detected_ratio}%，需矯正不正確的動作模式`,
+            title: '投擲姿勢調整建議',
+            description: `偵測到代償動作佔比 ${m.compensation_detected_ratio}%。注意：部分代償可能是身體條件下的自然適應策略，不一定需要調整。建議由指導員依個人狀況判斷。`,
             exercises: [
                 '鏡前投擲練習：面對鏡子做投擲動作，自我觀察姿勢',
                 '慢動作投擲：將投擲動作放慢 3 倍速度執行',
-                '單手穩定推球：坐穩後僅用手臂推球，限制身體前傾',
+                '單手穩定推球：坐穩後僅用手臂推球，減少身體前傾',
                 '目標投擲：在地上標記目標點，練習準確度',
             ],
             frequency: '每次訓練前做 5 次慢速練習',
@@ -208,12 +216,15 @@ function generatePrescriptions(m: AnalysisMetrics): PrescriptionItem[] {
 
 function generateSafetyNotes(m: AnalysisMetrics): string[] {
     const notes: string[] = [
-        '所有運動建議僅供參考，請在專業指導員監護下進行訓練',
+        '所有運動建議僅供參考，請在專業指導員監護下進行訓練。',
     ]
-    if (m.tremor_detected_ratio > 20) notes.push('偵測到較高頻率的手部震顫，建議就醫評估是否有潛在神經肌肉問題')
-    if (m.avg_trunk_tilt > 25) notes.push('軀幹傾斜角度較大，訓練時請確保座椅穩固，必要時使用安全帶')
-    if (m.compensation_detected_ratio > 40) notes.push('代償動作頻繁，可能因肌力不足或疼痛導致，建議先評估身體狀況')
-    notes.push('訓練中如有不適請立即停止，並向指導員報告')
+    if (m.tremor_detected_ratio > 15) notes.push(
+        '系統偵測到較高頻率的手部不穩定訊號。本系統非醫療器材，此偵測結果可能受環境光線、裝置性能、衣著遮擋等因素影響。若日常生活中觀察到持續性手部抖動，建議諮詢醫療專業人員進行評估。'
+    )
+    if (m.avg_trunk_tilt > 25) notes.push('軀幹傾斜角度較大，訓練時請確保座椅穩固，必要時使用安全帶。')
+    if (m.compensation_detected_ratio > 40) notes.push('代償動作頻繁，可能因肌力不足或身體不適導致，建議先評估身體狀況。')
+    notes.push('訓練中如有不適請立即停止，並向指導員報告。')
+    notes.push('本報告之量測結果受環境光線、裝置性能、拍攝角度與衣著等因素影響，參考值為工程經驗值，非臨床診斷標準。')
     return notes
 }
 

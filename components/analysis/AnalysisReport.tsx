@@ -201,39 +201,39 @@ function DonutChart({ metrics }: { metrics: AnalysisMetrics }) {
 }
 
 // ============================================================================
-// 健康風險推論
+// 運動表現風險提示
 // ============================================================================
 
 function HealthInferences({ metrics }: { metrics: AnalysisMetrics }) {
     const inferences: { icon: string; condition: string; evidence: string; risk: 'low' | 'medium' | 'high'; color: string }[] = []
 
     if (metrics.avg_rom < 120) {
-        inferences.push({ icon: '🦴', condition: '肩關節活動受限 / 五十肩風險', evidence: `ROM ${metrics.avg_rom}° 低於正常範圍（>140°）`, risk: 'high', color: '#EF4444' })
+        inferences.push({ icon: '🦴', condition: '上肢活動範圍偏低', evidence: `ROM ${metrics.avg_rom}°，低於建議參考值（≥140°）。建議加強上肢伸展訓練，持續偏低時可諮詢專業人員評估。`, risk: 'high', color: '#EF4444' })
     } else if (metrics.avg_rom < 150) {
-        inferences.push({ icon: '🦴', condition: '上肢柔軟度下降', evidence: `ROM ${metrics.avg_rom}°，略低於理想值`, risk: 'medium', color: '#F59E0B' })
+        inferences.push({ icon: '🦴', condition: '上肢柔軟度略低', evidence: `ROM ${metrics.avg_rom}°，略低於理想值。可透過伸展運動逐步改善。`, risk: 'medium', color: '#F59E0B' })
     }
 
     if (metrics.avg_trunk_tilt > 20) {
-        inferences.push({ icon: '🏥', condition: '脊椎側彎 / 核心肌群弱化', evidence: `軀幹傾斜 ${metrics.avg_trunk_tilt}° 明顯偏高`, risk: 'high', color: '#EF4444' })
+        inferences.push({ icon: '🧘', condition: '軀幹穩定度偏低', evidence: `軀幹傾斜 ${metrics.avg_trunk_tilt}°，明顯偏高（建議參考值 ≤10°，此為工程經驗值）。核心肌群訓練有助改善穩定性。`, risk: 'high', color: '#EF4444' })
     } else if (metrics.avg_trunk_tilt > 12) {
-        inferences.push({ icon: '🏥', condition: '核心穩定性不足', evidence: `軀幹傾斜 ${metrics.avg_trunk_tilt}°`, risk: 'medium', color: '#F59E0B' })
+        inferences.push({ icon: '🧘', condition: '核心穩定性可加強', evidence: `軀幹傾斜 ${metrics.avg_trunk_tilt}°，建議強化核心肌群訓練。`, risk: 'medium', color: '#F59E0B' })
     }
 
-    if (metrics.tremor_detected_ratio > 20) {
-        inferences.push({ icon: '🧠', condition: '神經肌肉控制異常 / 帕金森氏症風險', evidence: `震顫偵測率 ${metrics.tremor_detected_ratio}%，建議進一步神經科檢查`, risk: 'high', color: '#EF4444' })
-    } else if (metrics.tremor_detected_ratio > 10) {
-        inferences.push({ icon: '🧠', condition: '輕微手部震顫', evidence: `震顫偵測率 ${metrics.tremor_detected_ratio}%`, risk: 'medium', color: '#F59E0B' })
+    if (metrics.tremor_detected_ratio > 15) {
+        inferences.push({ icon: '✋', condition: '手部穩定性異常', evidence: `偵測到不穩定訊號比例 ${metrics.tremor_detected_ratio}%。本數據基於影像分析，受環境光線與裝置影響。若日常生活中也察覺手部持續性抖動，建議諮詢醫療專業人員做進一步評估。`, risk: 'high', color: '#EF4444' })
+    } else if (metrics.tremor_detected_ratio > 8) {
+        inferences.push({ icon: '✋', condition: '手部穩定性略低', evidence: `偵測率 ${metrics.tremor_detected_ratio}%。可透過握力與精細動作訓練改善。`, risk: 'medium', color: '#F59E0B' })
     }
 
     if (metrics.compensation_detected_ratio > 30) {
-        inferences.push({ icon: '⚕️', condition: '動作代償模式 / 肌力不平衡', evidence: `代償頻率 ${metrics.compensation_detected_ratio}%，可能存在疼痛迴避行為`, risk: 'high', color: '#EF4444' })
+        inferences.push({ icon: '🎯', condition: '頻繁代償動作', evidence: `代償比例 ${metrics.compensation_detected_ratio}%。注意：代償不一定需要矯正，部分可能是身體條件下的自然適應。建議由指導員依個人狀況判斷是否介入。`, risk: 'high', color: '#EF4444' })
     }
 
     if (inferences.length === 0) {
-        inferences.push({ icon: '✅', condition: '各項指標正常', evidence: '未偵測到明顯風險因子', risk: 'low', color: '#10B981' })
+        inferences.push({ icon: '✅', condition: '目前量測條件下未見異常', evidence: '在本次分析中，各項指標均在建議參考範圍內。結果可能受環境因素影響。', risk: 'low', color: '#10B981' })
     }
 
-    const riskLabels = { low: '低風險', medium: '中風險', high: '高風險' }
+    const riskLabels = { low: '正常', medium: '留意', high: '建議關注' }
 
     return (
         <div className="space-y-3">
@@ -268,7 +268,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
             {/* Header */}
             <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-lg border-b border-white/5 px-4 py-3 flex items-center justify-between">
                 <div>
-                    <h1 className="text-lg font-bold text-white">📊 AI 健康分析報告</h1>
+                    <h1 className="text-lg font-bold text-white">📊 AI 運動表現分析報告</h1>
                     <p className="text-xs text-slate-500">{patientName || '長者'} · {now}</p>
                 </div>
                 <button onClick={onClose} className="px-4 py-2 rounded-xl bg-white/10 text-sm text-white hover:bg-white/20 transition-colors">
@@ -348,7 +348,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 6. 健康風險推論 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">🏥 相關病症風險推論</h2>
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">🔍 運動表現風險提示</h2>
                     <HealthInferences metrics={metrics} />
                 </section>
 
@@ -382,7 +382,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 9. AI 建議處方 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">💊 AI 建議處方</h2>
+                    <h2 className="text-base font-bold text-white flex items-center gap-2">💡 AI 訓練建議</h2>
                     <div className="space-y-4">
                         {report.prescriptions.map((rx, i) => {
                             const style = PRIORITY_STYLES[rx.priority]
@@ -427,8 +427,9 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 免責聲明 ===== */}
                 <p className="text-[10px] text-slate-600 text-center leading-relaxed">
-                    本報告由 AI 系統自動產生，僅供參考。運動處方不構成醫療建議，<br />
-                    病症推論不代表診斷，請在專業醫師指導下做進一步檢查。<br />
+                    本報告由 AI 系統根據即時影像骨架分析自動產生，屬於運動訓練參考資料，<br />
+                    不構成任何醫療診斷或治療建議。量測結果受環境光線、裝置性能、<br />
+                    衣著遮擋與受測者配合度影響。如有健康疑慮，請諮詢專業醫療人員。<br />
                     © {new Date().getFullYear()} 惠生長照事業有限公司
                 </p>
             </div>

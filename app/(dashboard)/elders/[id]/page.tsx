@@ -269,7 +269,7 @@ export default function ElderDetailPage() {
                                             onClick={() => setReportSession(session)}
                                             className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-600 to-cyan-600 text-white font-bold text-sm hover:opacity-90 transition-opacity"
                                         >
-                                            📊 查看完整 AI 分析報告
+                                            📊 查看 AI 運動分析報告
                                         </button>
                                     </div>
                                 )}
