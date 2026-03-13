@@ -301,11 +301,11 @@ export default function AnalysisPage() {
                         <select
                             value={testType}
                             onChange={e => setTestType(e.target.value as TestType)}
-                            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:border-primary-500 focus:outline-none"
+                            className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-white text-sm focus:border-primary-500 focus:outline-none"
                         >
-                            <option value="practice">練習</option>
-                            <option value="pre">前測</option>
-                            <option value="post">後測</option>
+                            <option value="practice" className="bg-slate-800 text-white">練習</option>
+                            <option value="pre" className="bg-slate-800 text-white">前測</option>
+                            <option value="post" className="bg-slate-800 text-white">後測</option>
                         </select>
                         <button onClick={startAnalysis} className="btn-accent text-sm">
                             🎬 開始分析
