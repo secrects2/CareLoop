@@ -70,6 +70,10 @@ export const config = {
         '/analysis/:path*',
         '/admin/:path*',
         '/icope/:path*',
+        '/ai-lab/:path*',
+        '/privacy',
+        '/terms',
+        '/contact',
         '/login',
     ],
 }

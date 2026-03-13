@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useLiff } from '@/hooks/useLiff'
 
 export default function LoginPage() {
@@ -10,7 +10,8 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
     const [agreed, setAgreed] = useState(false)
     const [showDisclaimer, setShowDisclaimer] = useState(false)
-    const [liffLoggingIn, setLiffLoggingIn] = useState(false)
+    const [liffStatus, setLiffStatus] = useState<string | null>(null)
+    const liffAttempted = useRef(false)
     const router = useRouter()
 
     const { liffReady, isInLine, isLoggedIn: liffLoggedIn, lineProfile } = useLiff()
@@ -25,101 +26,69 @@ export default function LoginPage() {
         }
     }, [])
 
-    // LIFF 自動登入流程：LINE App 內且已取得 Profile → 自動綁定 Supabase
+    // LIFF 自動登入：LINE App 內 → 呼叫 server API → 取得 Supabase 帳號 → signIn
     useEffect(() => {
-        if (!liffReady || !isInLine || !liffLoggedIn || !lineProfile || liffLoggingIn) return
+        if (!liffReady || !isInLine || !liffLoggedIn || liffAttempted.current) return
 
-        const linkLiffAccount = async () => {
-            setLiffLoggingIn(true)
-            setError(null)
+        const doLiffLogin = async () => {
+            liffAttempted.current = true
+            setLiffStatus('正在驗證 LINE 帳號...')
 
             try {
-                const supabase = createClient()
+                // 取得 LIFF Access Token
+                const liff = (await import('@line/liff')).default
+                const accessToken = liff.getAccessToken()
 
-                // 1. 查詢是否已有綁定的帳號
-                const { data: existingProfile } = await supabase
-                    .from('profiles')
-                    .select('id, full_name, email')
-                    .eq('line_user_id', lineProfile.userId)
-                    .single()
-
-                if (existingProfile) {
-                    // 已綁定 → 用 LINE User ID 做 signInWithPassword（需預設密碼機制）
-                    // 改用：以 email 做 magic link 或直接跳轉（已有 session）
-                    const { data: { session } } = await supabase.auth.getSession()
-                    if (session) {
-                        router.push('/dashboard')
-                        return
-                    }
-
-                    // 沒有 session → 用 signInWithOtp 寄 magic link
-                    // 或者直接用管理端 API 建立 session
-                    // 簡化做法：用 supabase 匿名登入 + RLS bypass
-                    // 最佳做法：用 LINE Login 的 ID Token 做自訂 JWT
-
-                    // 這裡我們用 signUp/signIn with email + LINE-based password
-                    const lineEmail = `line_${lineProfile.userId}@liff.local`
-                    const linePassword = `liff_${lineProfile.userId}_${process.env.NEXT_PUBLIC_LIFF_ID}`
-
-                    const { error: signInErr } = await supabase.auth.signInWithPassword({
-                        email: lineEmail,
-                        password: linePassword,
-                    })
-
-                    if (!signInErr) {
-                        router.push('/dashboard')
-                        return
-                    }
+                if (!accessToken) {
+                    setError('無法取得 LINE Access Token')
+                    setLiffStatus(null)
+                    return
                 }
 
-                // 2. 沒有綁定 → 建立新帳號
-                const lineEmail = `line_${lineProfile.userId}@liff.local`
-                const linePassword = `liff_${lineProfile.userId}_${process.env.NEXT_PUBLIC_LIFF_ID}`
+                setLiffStatus('正在建立系統帳號...')
 
-                const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-                    email: lineEmail,
-                    password: linePassword,
-                    options: {
-                        data: {
-                            full_name: lineProfile.displayName,
-                            avatar_url: lineProfile.pictureUrl || '',
-                            line_user_id: lineProfile.userId,
-                        },
-                    },
+                // 呼叫 Server API 建立帳號
+                const res = await fetch('/api/auth/liff', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken }),
                 })
 
-                if (signUpErr) {
-                    // 帳號已存在 → 嘗試登入
-                    const { error: retryErr } = await supabase.auth.signInWithPassword({
-                        email: lineEmail,
-                        password: linePassword,
-                    })
-                    if (retryErr) throw new Error(retryErr.message)
+                const data = await res.json()
+
+                if (!res.ok || !data.success) {
+                    setError(data.error || 'LIFF 登入失敗')
+                    setLiffStatus(null)
+                    return
                 }
 
-                // 3. 更新 profiles 表綁定 line_user_id
-                if (signUpData?.user) {
-                    await supabase
-                        .from('profiles')
-                        .update({
-                            line_user_id: lineProfile.userId,
-                            full_name: lineProfile.displayName,
-                            avatar_url: lineProfile.pictureUrl || '',
-                        })
-                        .eq('id', signUpData.user.id)
+                setLiffStatus('登入中...')
+
+                // 用 Server 回傳的帳密登入 Supabase
+                const supabase = createClient()
+                const { error: signInErr } = await supabase.auth.signInWithPassword({
+                    email: data.email,
+                    password: data.password,
+                })
+
+                if (signInErr) {
+                    setError(`登入失敗：${signInErr.message}`)
+                    setLiffStatus(null)
+                    return
                 }
 
+                setLiffStatus(`歡迎，${data.displayName}！`)
                 router.push('/dashboard')
 
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'LIFF 登入失敗'
                 setError(msg)
-                setLiffLoggingIn(false)
+                setLiffStatus(null)
             }
         }
 
-        linkLiffAccount()
-    }, [liffReady, isInLine, liffLoggedIn, lineProfile, liffLoggingIn, router])
+        doLiffLogin()
+    }, [liffReady, isInLine, liffLoggedIn, router])
 
     // Google OAuth 登入
     const handleGoogleLogin = async () => {
@@ -146,7 +115,7 @@ export default function LoginPage() {
     }
 
     // LIFF 環境中 → 顯示自動登入畫面
-    if (isInLine && liffLoggingIn) {
+    if (isInLine && liffStatus) {
         return (
             <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="glass-card p-8 w-full max-w-md text-center">
@@ -156,10 +125,15 @@ export default function LoginPage() {
                         </svg>
                     </div>
                     <h2 className="text-xl font-bold text-white mb-2">LINE 自動登入中</h2>
-                    <p className="text-slate-400 text-sm mb-4">
-                        {lineProfile?.displayName ? `歡迎，${lineProfile.displayName}` : '正在驗證 LINE 帳號...'}
-                    </p>
-                    <div className="w-8 h-8 mx-auto border-2 border-[#06C755] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-slate-400 text-sm mb-4">{liffStatus}</p>
+                    {!error && (
+                        <div className="w-8 h-8 mx-auto border-2 border-[#06C755] border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {error && (
+                        <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                            {error}
+                        </div>
+                    )}
                 </div>
             </div>
         )
@@ -247,7 +221,6 @@ export default function LoginPage() {
                     <span>{loading ? '登入中...' : '使用 Google 帳號登入'}</span>
                 </button>
 
-                {/* LINE LIFF 手動綁定（在一般瀏覽器中） */}
                 {liffReady && !isInLine && (
                     <p className="text-center text-[10px] text-slate-600 mt-3">
                         💬 也可從 LINE App 開啟本系統直接登入
@@ -265,38 +238,30 @@ export default function LoginPage() {
                             <h2 className="text-xl font-bold text-white">⚠️ 免責聲明</h2>
                             <button onClick={() => setShowDisclaimer(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/20 transition-colors" title="關閉">✕</button>
                         </div>
-
                         <div className="space-y-4 text-sm text-slate-300 leading-relaxed">
                             <section>
                                 <h3 className="font-semibold text-white mb-2">一、系統用途與限制</h3>
-                                <p>本系統（「惠生 ICOPE & 地板滾球檢測平台」）提供之 AI 動作分析、SPPB 評估及 ICOPE 檢測功能，僅作為輔助篩檢與參考工具，<strong className="text-amber-400">不構成醫療診斷、治療建議或專業醫療意見</strong>。</p>
+                                <p>本系統提供之 AI 動作分析、SPPB 評估及 ICOPE 檢測功能，僅作為輔助篩檢與參考工具，<strong className="text-amber-400">不構成醫療診斷、治療建議或專業醫療意見</strong>。</p>
                             </section>
                             <section>
                                 <h3 className="font-semibold text-white mb-2">二、AI 分析結果聲明</h3>
                                 <ul className="list-disc pl-5 space-y-1">
-                                    <li>AI 骨架偵測與角度計算受環境光線、拍攝角度、衣著及個人體型影響，結果可能存在誤差。</li>
-                                    <li>系統自動判定之分數與評級僅供參考，應由具專業資格之醫事人員或運動指導員進行最終判斷。</li>
-                                    <li>本系統不保證分析結果之完全正確性與即時性。</li>
+                                    <li>AI 骨架偵測受環境光線、拍攝角度影響，結果可能存在誤差。</li>
+                                    <li>系統自動判定之分數僅供參考，應由專業人員最終判斷。</li>
                                 </ul>
                             </section>
                             <section>
                                 <h3 className="font-semibold text-white mb-2">三、使用者責任</h3>
                                 <ul className="list-disc pl-5 space-y-1">
-                                    <li>使用者應確保受測長者之身體狀況適合進行相關測試，並採取必要之安全防護措施。</li>
-                                    <li>使用者應依專業判斷決定是否採納系統之分析結果。</li>
-                                    <li>使用者應善盡個人資料保護義務，妥善管理帳號權限。</li>
+                                    <li>使用者應確保受測長者身體狀況適合進行測試。</li>
+                                    <li>使用者應善盡個人資料保護義務。</li>
                                 </ul>
                             </section>
                             <section>
                                 <h3 className="font-semibold text-white mb-2">四、損害賠償免責</h3>
-                                <p>惠生長照事業有限公司對於因使用或無法使用本系統而直接或間接造成之任何損害，不負任何賠償責任。</p>
-                            </section>
-                            <section>
-                                <h3 className="font-semibold text-white mb-2">五、隱私與資料安全</h3>
-                                <p>相機畫面僅於使用者裝置端即時處理，不會上傳至伺服器。詳細資料處理方式請參閱<a href="/privacy" target="_blank" className="text-primary-400 hover:underline">隱私權政策</a>。</p>
+                                <p>惠生長照事業有限公司對因使用本系統造成之任何損害，不負賠償責任。</p>
                             </section>
                         </div>
-
                         <div className="pt-3 border-t border-white/10 flex gap-3">
                             <button onClick={() => setShowDisclaimer(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-slate-400 font-medium hover:bg-white/10 transition-colors">關閉</button>
                             <button onClick={() => { setAgreed(true); setShowDisclaimer(false); setError(null) }} className="flex-1 py-3 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-500 transition-colors">✓ 我已閱讀並同意</button>
