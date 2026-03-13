@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { type AiReport, type AnalysisMetrics, generateAiReport } from '@/lib/analysis/ai-prescription'
 
 // ============================================================================
@@ -262,6 +262,55 @@ function HealthInferences({ metrics }: { metrics: AnalysisMetrics }) {
 export default function AnalysisReport({ metrics, patientName, sessionDate, durationSeconds, onClose }: AnalysisReportProps) {
     const report: AiReport = generateAiReport(metrics)
     const now = sessionDate || new Date().toLocaleString('zh-TW')
+    const contentRef = useRef<HTMLDivElement>(null)
+    const [downloading, setDownloading] = useState(false)
+
+    const handleDownloadPdf = async () => {
+        if (!contentRef.current || downloading) return
+        setDownloading(true)
+        try {
+            const html2canvas = (await import('html2canvas')).default
+            const { jsPDF } = await import('jspdf')
+
+            const canvas = await html2canvas(contentRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#0f172a',
+                logging: false,
+            })
+
+            const imgData = canvas.toDataURL('image/png')
+            const pdf = new jsPDF('p', 'mm', 'a4')
+            const pageWidth = pdf.internal.pageSize.getWidth()
+            const pageHeight = pdf.internal.pageSize.getHeight()
+            const imgWidth = pageWidth - 16 // 8mm margins
+            const imgHeight = (canvas.height * imgWidth) / canvas.width
+            const margin = 8
+
+            let heightLeft = imgHeight
+            let position = margin
+
+            // First page
+            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight)
+            heightLeft -= (pageHeight - margin * 2)
+
+            // Additional pages if content is taller than one page
+            while (heightLeft > 0) {
+                position = -(imgHeight - heightLeft) + margin
+                pdf.addPage()
+                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight)
+                heightLeft -= (pageHeight - margin * 2)
+            }
+
+            const fileName = `AI運動分析_${patientName || '長者'}_${new Date().toISOString().slice(0, 10)}.pdf`
+            pdf.save(fileName)
+        } catch (err) {
+            console.error('PDF 產生失敗:', err)
+            alert('PDF 產生失敗，請稍後再試。')
+        } finally {
+            setDownloading(false)
+        }
+    }
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
@@ -271,12 +320,21 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                     <h1 className="text-lg font-bold text-white">📊 AI 運動表現分析報告</h1>
                     <p className="text-xs text-slate-500">{patientName || '長者'} · {now}</p>
                 </div>
-                <button onClick={onClose} className="px-4 py-2 rounded-xl bg-white/10 text-sm text-white hover:bg-white/20 transition-colors">
-                    ✕ 關閉
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleDownloadPdf}
+                        disabled={downloading}
+                        className="px-3 py-2 rounded-xl bg-primary-600/80 text-sm text-white hover:bg-primary-600 transition-colors disabled:opacity-50"
+                    >
+                        {downloading ? '產生中...' : '📄 下載 PDF'}
+                    </button>
+                    <button onClick={onClose} className="px-3 py-2 rounded-xl bg-white/10 text-sm text-white hover:bg-white/20 transition-colors">
+                        ✕ 關閉
+                    </button>
+                </div>
             </div>
 
-            <div className="max-w-2xl mx-auto p-4 pb-20 space-y-6">
+            <div ref={contentRef} className="max-w-2xl mx-auto p-4 pb-20 space-y-6">
 
                 {/* ===== 1. 總評 ===== */}
                 <section className="glass-card p-6 text-center space-y-4">
