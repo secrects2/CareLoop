@@ -91,6 +91,19 @@ export async function POST(request: Request) {
                 }, { onConflict: 'id' })
         }
 
+        // 確保 profiles 記錄存在（已有帳號也要確保）
+        await supabaseAdmin
+            .from('profiles')
+            .upsert({
+                id: userId,
+                line_user_id: lineUserId,
+                full_name: displayName,
+                avatar_url: pictureUrl || '',
+                email: lineEmail,
+                role: 'user',
+                is_active: true,
+            }, { onConflict: 'id' })
+
         // Step 4：確保密碼正確（用 Admin API 更新密碼）
         await supabaseAdmin.auth.admin.updateUserById(userId, { password: linePassword })
 
