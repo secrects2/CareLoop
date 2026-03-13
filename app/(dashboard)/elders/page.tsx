@@ -79,23 +79,8 @@ export default function EldersPage() {
             .filter(Boolean)
 
         try {
-            // 0. 確保 profiles 記錄存在（防止外鍵約束失敗）
-            const { data: profileCheck } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('id', user.id)
-                .single()
-
-            if (!profileCheck) {
-                await supabase.from('profiles').upsert({
-                    id: user.id,
-                    email: user.email || '',
-                    full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '指導員',
-                    avatar_url: user.user_metadata?.avatar_url || '',
-                    role: 'user',
-                    is_active: true,
-                }, { onConflict: 'id' })
-            }
+            // 0. 透過 Server API 確保 profiles 記錄存在（繞過 RLS）
+            await fetch('/api/auth/ensure-profile', { method: 'POST' })
 
             // 1. 寫入 elders 表（AI 分析用）
             const { data: elderData, error: elderErr } = await supabase
