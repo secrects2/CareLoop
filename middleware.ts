@@ -69,6 +69,7 @@ export const config = {
         '/elders/:path*',
         '/analysis/:path*',
         '/admin/:path*',
+        '/icope/:path*',
         '/login',
     ],
 }
