@@ -690,7 +690,7 @@ export default function BocciaCam({
     const videoConstraints = React.useMemo(() => ({
         width: 640,
         height: 480,
-        facingMode: 'environment'
+        facingMode: { exact: 'environment' }
     }), [])
 
     // 顯示 AI 分析報告（全頁式）
