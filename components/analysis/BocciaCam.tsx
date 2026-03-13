@@ -686,50 +686,10 @@ export default function BocciaCam({
         }
     }, [processResults])
 
-    // 動態偵測後鏡頭 deviceId（LINE WebView 不支援 facingMode）
-    const [rearCameraId, setRearCameraId] = useState<string | null>(null)
-    const cameraDetectedRef = useRef(false)
-
-    useEffect(() => {
-        if (cameraDetectedRef.current) return
-        cameraDetectedRef.current = true
-
-        const findRearCamera = async () => {
-            try {
-                // 先要求權限（某些瀏覽器需要先取得權限才能列舉裝置標籤）
-                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true })
-                tempStream.getTracks().forEach(t => t.stop())
-
-                const devices = await navigator.mediaDevices.enumerateDevices()
-                const videoDevices = devices.filter(d => d.kind === 'videoinput')
-                console.log('[Camera] 找到', videoDevices.length, '個鏡頭:', videoDevices.map(d => `${d.label} (${d.deviceId.slice(0, 8)})`))
-
-                // 優先找後鏡頭（label 通常含 back/rear/environment/後/0）
-                const rearCam = videoDevices.find(d =>
-                    /back|rear|environment|後|facing back/i.test(d.label)
-                ) || (videoDevices.length > 1 ? videoDevices[videoDevices.length - 1] : null)
-                // 手機通常：index 0 = 前鏡頭，最後一個 = 後鏡頭
-
-                if (rearCam) {
-                    console.log('[Camera] 選擇後鏡頭:', rearCam.label)
-                    setRearCameraId(rearCam.deviceId)
-                } else {
-                    console.log('[Camera] 無法辨識後鏡頭，使用預設')
-                }
-            } catch (err) {
-                console.error('[Camera] 列舉裝置失敗:', err)
-            }
-        }
-        findRearCamera()
-    }, [])
-
-    // Memoize video constraints
-    const videoConstraints = React.useMemo(() => {
-        if (rearCameraId) {
-            return { width: 640, height: 480, deviceId: { exact: rearCameraId } }
-        }
-        return { width: 640, height: 480, facingMode: { ideal: 'environment' } }
-    }, [rearCameraId])
+    // 後鏡頭設定
+    const videoConstraints = React.useMemo(() => ({
+        facingMode: 'environment'
+    }), [])
 
     // 顯示 AI 分析報告（全頁式）
     if (reportMetrics) {
@@ -757,7 +717,7 @@ export default function BocciaCam({
             <div className="relative flex-1 w-full bg-black" style={{ minHeight: '45vh' }}>
                 <Webcam
                     ref={webcamRef} audio={false}
-                    // Remove mirrored for back camera
+                    mirrored={false}
                     className="absolute inset-0 w-full h-full object-cover"
                     videoConstraints={videoConstraints}
                     onUserMedia={() => setCameraReady(true)}
