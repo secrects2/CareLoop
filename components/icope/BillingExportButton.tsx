@@ -55,7 +55,7 @@ export default function BillingExportButton({
             .order('assessed_at', { ascending: true })
 
         if (error) throw new Error(error.message)
-        return (data as BillingRawRow[]) || []
+        return (data as unknown as BillingRawRow[]) || []
     }
 
     /**
