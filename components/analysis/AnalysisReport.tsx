@@ -68,12 +68,12 @@ function RadarChart({ metrics }: { metrics: AnalysisMetrics }) {
                 {gridLevels.map(level => {
                     const pts = Array.from({ length: n }, (_, i) => getPoint(i, maxR * level))
                     const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + 'Z'
-                    return <path key={level} d={path} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+                    return <path key={level} d={path} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={1} />
                 })}
                 {/* 軸線 */}
                 {dims.map((_, i) => {
                     const p = getPoint(i, maxR)
-                    return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+                    return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(0,0,0,0.04)" strokeWidth={1} />
                 })}
                 {/* 數據區域 */}
                 <path d={dataPath} fill="rgba(59,130,246,0.25)" stroke="rgb(59,130,246)" strokeWidth={2} />
@@ -85,7 +85,7 @@ function RadarChart({ metrics }: { metrics: AnalysisMetrics }) {
                     const lp = getPoint(i, maxR + 20)
                     return (
                         <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="middle"
-                            className="fill-slate-400 text-[10px]">{d.label}</text>
+                            className="fill-slate-500 text-[10px]">{d.label}</text>
                     )
                 })}
             </svg>
@@ -110,16 +110,16 @@ function BarChart({ metrics }: { metrics: AnalysisMetrics }) {
                 return (
                     <div key={i} className="space-y-1">
                         <div className="flex justify-between text-xs">
-                            <span className="text-slate-400">{bar.label}</span>
+                            <span className="text-slate-500">{bar.label}</span>
                             <span className={isGood ? 'text-emerald-400' : 'text-amber-400'}>
                                 {bar.label === 'ROM' ? `${metrics.avg_rom}${bar.unit}` :
                                     bar.label === '穩定率' ? `${metrics.stable_ratio}${bar.unit}` :
                                         `${Math.round(bar.value)}`}
                             </span>
                         </div>
-                        <div className="relative h-3 bg-white/5 rounded-full overflow-hidden">
+                        <div className="relative h-3 bg-slate-200 rounded-full overflow-hidden">
                             {/* 理想值標記線 */}
-                            <div className="absolute top-0 bottom-0 w-px bg-white/20"
+                            <div className="absolute top-0 bottom-0 w-px bg-slate-400"
                                 style={{ left: `${Math.min((bar.ideal / (bar.ideal * 1.2)) * 100, 100)}%` }} />
                             {/* 實際值 */}
                             <div className="h-full rounded-full transition-all duration-700"
@@ -133,7 +133,7 @@ function BarChart({ metrics }: { metrics: AnalysisMetrics }) {
                     </div>
                 )
             })}
-            <p className="text-[9px] text-slate-600 text-center mt-1">白色標記線 = 理想值</p>
+            <p className="text-[9px] text-slate-400 text-center mt-1">白色標記線 = 理想值</p>
         </div>
     )
 }
@@ -183,16 +183,16 @@ function DonutChart({ metrics }: { metrics: AnalysisMetrics }) {
                     )
                 })}
                 {/* 中心空洞 */}
-                <circle cx={cx} cy={cy} r={35} fill="rgb(15,23,42)" />
-                <text x={cx} y={cy - 6} textAnchor="middle" className="fill-white text-base font-bold">{stable}%</text>
+                <circle cx={cx} cy={cy} r={35} fill="white" />
+                <text x={cx} y={cy - 6} textAnchor="middle" className="fill-slate-800 text-base font-bold">{stable}%</text>
                 <text x={cx} y={cy + 10} textAnchor="middle" className="fill-slate-500 text-[9px]">穩定率</text>
             </svg>
             <div className="space-y-2 text-xs">
                 {segments.map((seg, i) => (
                     <div key={i} className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: seg.color }} />
-                        <span className="text-slate-400">{seg.label}</span>
-                        <span className="text-white font-medium ml-auto">{seg.value}%</span>
+                        <span className="text-slate-600">{seg.label}</span>
+                        <span className="text-slate-800 font-medium ml-auto">{seg.value}%</span>
                     </div>
                 ))}
             </div>
@@ -242,12 +242,12 @@ function HealthInferences({ metrics }: { metrics: AnalysisMetrics }) {
                     <span className="text-xl mt-0.5">{inf.icon}</span>
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-white">{inf.condition}</h4>
+                            <h4 className="text-sm font-bold text-slate-800">{inf.condition}</h4>
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: inf.color }}>
                                 {riskLabels[inf.risk]}
                             </span>
                         </div>
-                        <p className="text-xs text-slate-400 mt-1">{inf.evidence}</p>
+                        <p className="text-xs text-slate-500 mt-1">{inf.evidence}</p>
                     </div>
                 </div>
             ))}
@@ -336,22 +336,22 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
     }
 
     return (
-        <div className="fixed inset-0 z-50 bg-slate-950 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-50 overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur-lg border-b border-white/5 px-4 py-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-lg border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
                 <div>
-                    <h1 className="text-lg font-bold text-white">📊 AI 運動表現分析報告</h1>
+                    <h1 className="text-lg font-bold text-slate-800">📊 AI 運動表現分析報告</h1>
                     <p className="text-xs text-slate-500">{patientName || '長者'} · {now}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleDownloadPdf}
                         disabled={downloading}
-                        className="px-3 py-2 rounded-xl bg-primary-600/80 text-sm text-white hover:bg-primary-600 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 rounded-xl bg-primary-600 text-sm text-white hover:bg-primary-700 transition-colors disabled:opacity-50"
                     >
                         {downloading ? '產生中...' : '📤 儲存報告'}
                     </button>
-                    <button onClick={onClose} className="px-3 py-2 rounded-xl bg-white/10 text-sm text-white hover:bg-white/20 transition-colors">
+                    <button onClick={onClose} className="px-3 py-2 rounded-xl bg-slate-200 text-sm text-slate-700 hover:bg-slate-300 transition-colors">
                         ✕ 關閉
                     </button>
                 </div>
@@ -362,9 +362,9 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                 {/* ===== 1. 總評 ===== */}
                 <section className="glass-card p-6 text-center space-y-4">
                     <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mx-auto"
-                        style={{ background: `conic-gradient(${report.overall.color} ${report.overall.score}%, transparent ${report.overall.score}%)`, padding: '4px' }}>
-                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                            <span className="text-3xl font-black text-white">{report.overall.score}</span>
+                        style={{ background: `conic-gradient(${report.overall.color} ${report.overall.score}%, #e2e8f0 ${report.overall.score}%)`, padding: '4px' }}>
+                        <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                            <span className="text-3xl font-black text-slate-800">{report.overall.score}</span>
                         </div>
                     </div>
                     <div>
@@ -372,7 +372,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                             {report.overall.level}
                         </span>
                     </div>
-                    <p className="text-sm text-slate-300">{report.overall.summary}</p>
+                    <p className="text-sm text-slate-600">{report.overall.summary}</p>
                     {durationSeconds != null && (
                         <p className="text-xs text-slate-500">分析時長：{formatDuration(durationSeconds)} · 投擲次數：{metrics.throw_count} 次</p>
                     )}
@@ -380,7 +380,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 2. 雷達圖 — 五維能力 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">🕸️ 五維能力評估</h2>
+                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">🕸️ 五維能力評估</h2>
                     <div className="glass-card p-4 flex justify-center">
                         <RadarChart metrics={metrics} />
                     </div>
@@ -388,7 +388,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 3. 柱狀圖 — 指標對比 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">📊 指標 vs 理想值</h2>
+                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">📊 指標 vs 理想值</h2>
                     <div className="glass-card p-4">
                         <BarChart metrics={metrics} />
                     </div>
@@ -396,7 +396,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 4. 圓餅圖 — 動作品質 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">🎯 動作品質分布</h2>
+                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">🎯 動作品質分布</h2>
                     <div className="glass-card p-4 flex justify-center">
                         <DonutChart metrics={metrics} />
                     </div>
@@ -404,7 +404,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 5. 關鍵數據 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">📈 關鍵數據</h2>
+                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">📈 關鍵數據</h2>
                     <div className="grid grid-cols-2 gap-3">
                         <MetricCard label="手肘伸展度" value={`${metrics.avg_rom}°`} ideal="≥150°" good={metrics.avg_rom >= 150} />
                         <MetricCard label="軀幹傾斜" value={`${metrics.avg_trunk_tilt}°`} ideal="≤10°" good={metrics.avg_trunk_tilt <= 10} />
@@ -429,14 +429,14 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 6. 健康風險推論 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">🔍 運動表現風險提示</h2>
+                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">🔍 運動表現風險提示</h2>
                     <HealthInferences metrics={metrics} />
                 </section>
 
                 {/* ===== 7. 優勢 ===== */}
                 {report.strengths.length > 0 && (
                     <section className="space-y-3">
-                        <h2 className="text-base font-bold text-white flex items-center gap-2">✅ 優勢項目</h2>
+                        <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">✅ 優勢項目</h2>
                         <div className="glass-card p-4 space-y-2">
                             {report.strengths.map((s, i) => (
                                 <div key={i} className="flex items-start gap-2 text-sm text-green-400">
@@ -450,7 +450,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                 {/* ===== 8. 需注意 ===== */}
                 {report.concerns.length > 0 && (
                     <section className="space-y-3">
-                        <h2 className="text-base font-bold text-white flex items-center gap-2">⚠️ 需注意</h2>
+                        <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">⚠️ 需注意</h2>
                         <div className="glass-card p-4 space-y-2">
                             {report.concerns.map((c, i) => (
                                 <div key={i} className="flex items-start gap-2 text-sm text-amber-400">
@@ -463,7 +463,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
 
                 {/* ===== 9. AI 建議處方 ===== */}
                 <section className="space-y-3">
-                    <h2 className="text-base font-bold text-white flex items-center gap-2">💡 AI 訓練建議</h2>
+                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">💡 AI 訓練建議</h2>
                     <div className="space-y-4">
                         {report.prescriptions.map((rx, i) => {
                             const style = PRIORITY_STYLES[rx.priority]
@@ -473,7 +473,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                                         <div className="flex items-center gap-2">
                                             <span className="text-xl">{rx.icon}</span>
                                             <div>
-                                                <h3 className="font-bold text-white text-sm">{rx.title}</h3>
+                                                <h3 className="font-bold text-slate-800 text-sm">{rx.title}</h3>
                                                 <span className="text-[10px] text-slate-500">{rx.category}</span>
                                             </div>
                                         </div>
@@ -481,7 +481,7 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                                             優先：{style.label}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-slate-400">{rx.description}</p>
+                                    <p className="text-xs text-slate-600">{rx.description}</p>
                                     <div className="space-y-1.5">
                                         {rx.exercises.map((ex, j) => (
                                             <div key={j} className="flex items-start gap-2 text-xs text-slate-300">
@@ -499,15 +499,15 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                 </section>
 
                 {/* ===== 10. 安全提示 ===== */}
-                <section className="glass-card p-4 border-l-4 border-amber-500/50 space-y-2">
-                    <h3 className="text-sm font-bold text-amber-400">🛡️ 安全提示</h3>
+                <section className="glass-card p-4 border-l-4 border-amber-500 space-y-2">
+                    <h3 className="text-sm font-bold text-amber-600">🛡️ 安全提示</h3>
                     {report.safetyNotes.map((n, i) => (
-                        <p key={i} className="text-xs text-slate-400">• {n}</p>
+                        <p key={i} className="text-xs text-slate-600">• {n}</p>
                     ))}
                 </section>
 
                 {/* ===== 免責聲明 ===== */}
-                <p className="text-[10px] text-slate-600 text-center leading-relaxed">
+                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
                     本報告由 AI 系統根據即時影像骨架分析自動產生，屬於運動訓練參考資料，<br />
                     不構成任何醫療診斷或治療建議。量測結果受環境光線、裝置性能、<br />
                     衣著遮擋與受測者配合度影響。如有健康疑慮，請諮詢專業醫療人員。<br />
@@ -526,8 +526,8 @@ function MetricCard({ label, value, ideal, good }: { label: string; value: strin
     return (
         <div className="glass-card p-3 space-y-1">
             <p className="text-[10px] text-slate-500">{label}</p>
-            <p className={`text-lg font-bold ${good ? 'text-green-400' : 'text-amber-400'}`}>{value}</p>
-            <p className="text-[9px] text-slate-600">理想值 {ideal}</p>
+            <p className={`text-lg font-bold ${good ? 'text-green-600' : 'text-amber-600'}`}>{value}</p>
+            <p className="text-[9px] text-slate-400">理想值 {ideal}</p>
         </div>
     )
 }

@@ -83,15 +83,15 @@ export default function DashboardLayout({
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 glass-card rounded-none lg:rounded-r-2xl border-r border-white/5 flex flex-col transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white/90 backdrop-blur-xl rounded-none lg:rounded-r-2xl border-r border-slate-200 flex flex-col transform transition-transform duration-300 shadow-lg lg:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 {/* Logo */}
-                <div className="p-6 border-b border-white/5">
+                <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: 'var(--gradient-primary)' }}>
                             E
                         </div>
                         <div>
-                            <h1 className="font-bold text-white text-sm leading-tight">惠生檢測平台</h1>
+                            <h1 className="font-bold text-slate-800 text-sm leading-tight">惠生檢測平台</h1>
                             <p className="text-xs text-slate-500">ICOPE & 地板滾球</p>
                         </div>
                     </div>
@@ -113,7 +113,7 @@ export default function DashboardLayout({
                 </nav>
 
                 {/* User profile */}
-                <div className="p-4 border-t border-white/5">
+                <div className="p-4 border-t border-slate-200">
                     <div className="flex items-center gap-3 mb-3">
                         {profile?.avatar_url ? (
                             <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-full" />
@@ -123,13 +123,13 @@ export default function DashboardLayout({
                             </div>
                         )}
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{profile?.full_name || user?.user_metadata?.full_name || '指導員'}</p>
+                            <p className="text-sm font-medium text-slate-800 truncate">{profile?.full_name || user?.user_metadata?.full_name || '指導員'}</p>
                             <p className="text-xs text-slate-500 truncate">{profile?.email || user?.email}</p>
                         </div>
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="w-full text-left text-sm text-slate-400 hover:text-red-400 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5"
+                        className="w-full text-left text-sm text-slate-500 hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
                     >
                         🚪 退出登入
                     </button>
@@ -139,13 +139,13 @@ export default function DashboardLayout({
             {/* Main content */}
             <main className="flex-1 min-h-screen">
                 {/* Mobile header */}
-                <header className="lg:hidden sticky top-0 z-30 glass-card rounded-none border-b border-white/5 px-4 py-3 flex items-center justify-between">
-                    <button onClick={() => setSidebarOpen(true)} className="text-white p-1">
+                <header className="lg:hidden sticky top-0 z-30 bg-white/90 backdrop-blur-xl rounded-none border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
+                    <button onClick={() => setSidebarOpen(true)} className="text-slate-700 p-1">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <span className="font-bold text-white text-sm">惠生檢測平台</span>
+                    <span className="font-bold text-slate-800 text-sm">惠生檢測平台</span>
                     <div className="w-8" />
                 </header>
 
@@ -154,19 +154,19 @@ export default function DashboardLayout({
                 </div>
 
                 {/* Footer */}
-                <footer className="border-t border-white/5 px-4 md:px-6 lg:px-8 py-6 mt-8">
+                <footer className="border-t border-slate-200 px-4 md:px-6 lg:px-8 py-6 mt-8">
                     <div className="max-w-4xl mx-auto">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
                             <p>© {new Date().getFullYear()} 惠生長照事業有限公司 版權所有</p>
                             <div className="flex items-center gap-4">
-                                <a href="/privacy" className="hover:text-slate-400 transition-colors">隱私權政策</a>
+                                <a href="/privacy" className="hover:text-primary-600 transition-colors">隱私權政策</a>
                                 <span>·</span>
-                                <a href="/terms" className="hover:text-slate-400 transition-colors">服務條款</a>
+                                <a href="/terms" className="hover:text-primary-600 transition-colors">服務條款</a>
                                 <span>·</span>
-                                <a href="/contact" className="hover:text-slate-400 transition-colors">聯絡我們</a>
+                                <a href="/contact" className="hover:text-primary-600 transition-colors">聯絡我們</a>
                             </div>
                         </div>
-                        <p className="text-center text-[10px] text-slate-700 mt-2">
+                        <p className="text-center text-[10px] text-slate-400 mt-2">
                             本系統依據台灣衛生福利部 ICOPE 標準設計，僅供專業人員使用
                         </p>
                     </div>
