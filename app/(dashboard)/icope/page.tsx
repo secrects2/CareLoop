@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -60,7 +60,7 @@ export default function IcopePage() {
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">📋 ICOPE 評估</h1>
+                    <h1 className="text-2xl font-bold text-slate-800">📋 ICOPE 評估</h1>
                     <p className="text-slate-400 text-sm mt-1">長者內在能力檢測前後測管理</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -72,17 +72,17 @@ export default function IcopePage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl bg-white/5 w-fit">
+            <div className="flex gap-1 p-1 rounded-xl bg-slate-100 w-fit">
                 <button
                     onClick={() => setTab('dashboard')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'dashboard' ? 'bg-primary-600 text-white' : 'text-slate-400 hover:text-white'
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'dashboard' ? 'bg-primary-600 text-slate-800' : 'text-slate-400 hover:text-slate-800'
                         }`}
                 >
                     📊 個案管理
                 </button>
                 <button
                     onClick={() => setTab('assessments')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'assessments' ? 'bg-primary-600 text-white' : 'text-slate-400 hover:text-white'
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'assessments' ? 'bg-primary-600 text-slate-800' : 'text-slate-400 hover:text-slate-800'
                         }`}
                 >
                     📝 評估紀錄
@@ -95,12 +95,12 @@ export default function IcopePage() {
             {/* Assessments Tab */}
             {tab === 'assessments' && (
                 <div className="glass-card p-6">
-                    <h2 className="text-lg font-semibold text-white mb-4">所有評估紀錄</h2>
+                    <h2 className="text-lg font-semibold text-slate-800 mb-4">所有評估紀錄</h2>
 
                     {loading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="h-20 bg-white/5 rounded-xl animate-pulse" />
+                                <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />
                             ))}
                         </div>
                     ) : assessments.length === 0 ? (
@@ -118,7 +118,7 @@ export default function IcopePage() {
                                 return (
                                     <div
                                         key={a.id}
-                                        className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                                        className="flex items-center justify-between p-4 rounded-xl bg-slate-100 hover:bg-slate-100 transition-colors cursor-pointer"
                                         onClick={() => router.push(`/icope/${a.id}`)}
                                     >
                                         <div className="flex items-center gap-4">
@@ -128,7 +128,7 @@ export default function IcopePage() {
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-white font-medium">
+                                                    <p className="text-slate-800 font-medium">
                                                         {(a.patients as any)?.name || '未知'}
                                                     </p>
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${a.stage === 'initial'

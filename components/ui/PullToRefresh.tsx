@@ -78,12 +78,12 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
                     opacity: progress,
                 }}
             >
-                <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 rounded-full bg-slate-100 backdrop-blur-lg border border-white/20 flex items-center justify-center shadow-lg">
                     {refreshing ? (
                         <div className="w-5 h-5 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
                     ) : (
                         <svg
-                            className="w-5 h-5 text-white/80 transition-transform duration-200"
+                            className="w-5 h-5 text-slate-800/80 transition-transform duration-200"
                             style={{ transform: `rotate(${progress * 180}deg)` }}
                             fill="none" viewBox="0 0 24 24" stroke="currentColor"
                         >

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -130,22 +130,22 @@ export default function NewAssessmentPage() {
     return (
         <div className="space-y-6 max-w-2xl mx-auto">
             <div>
-                <button onClick={() => router.push('/icope')} className="text-slate-400 hover:text-white transition-colors text-sm mb-2">
+                <button onClick={() => router.push('/icope')} className="text-slate-400 hover:text-slate-800 transition-colors text-sm mb-2">
                     ← 返回評估列表
                 </button>
-                <h1 className="text-2xl font-bold text-white">📋 新增 ICOPE 評估</h1>
+                <h1 className="text-2xl font-bold text-slate-800">📋 新增 ICOPE 評估</h1>
             </div>
 
             <div className="glass-card p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-white">選擇評估階段</h2>
+                <h2 className="text-lg font-semibold text-slate-800">選擇評估階段</h2>
                 <div className="flex gap-3">
                     {(['initial', 'post'] as AssessmentStage[]).map(s => (
                         <button
                             key={s}
                             onClick={() => setStage(s)}
                             className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${stage === s
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                ? 'bg-primary-600 text-slate-800'
+                                : 'bg-slate-100 text-slate-400 hover:bg-slate-100'
                                 }`}
                         >
                             {s === 'initial' ? '📝 初評' : '📊 後測'}
@@ -156,7 +156,7 @@ export default function NewAssessmentPage() {
 
             <div className="glass-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-white">選擇長者</h2>
+                    <h2 className="text-lg font-semibold text-slate-800">選擇長者</h2>
                     <Link href="/elders?add=true" className="text-xs text-primary-400 hover:underline">
                         + 新增長者
                     </Link>
@@ -169,14 +169,14 @@ export default function NewAssessmentPage() {
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         placeholder="搜尋姓名..."
-                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors text-sm"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors text-sm"
                     />
                 )}
 
                 {loading ? (
                     <div className="space-y-2">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse" />
+                            <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
                         ))}
                     </div>
                 ) : filteredElders.length === 0 ? (
@@ -195,15 +195,15 @@ export default function NewAssessmentPage() {
                                 onClick={() => setSelectedElderId(elder.id)}
                                 className={`w-full text-left p-4 rounded-xl transition-all ${selectedElderId === elder.id
                                     ? 'bg-primary-600/20 border-2 border-primary-500/40'
-                                    : 'bg-white/5 border-2 border-transparent hover:bg-white/10'
+                                    : 'bg-slate-100 border-2 border-transparent hover:bg-slate-100'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
+                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-slate-800 ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
                                         {elder.name[0]}
                                     </div>
                                     <div>
-                                        <p className="text-white font-medium">{elder.name}</p>
+                                        <p className="text-slate-800 font-medium">{elder.name}</p>
                                         <p className="text-xs text-slate-500 mt-0.5">
                                             {elder.gender === 'female' ? '女' : '男'}
                                             {elder.birth_date && ` · ${elder.birth_date}`}

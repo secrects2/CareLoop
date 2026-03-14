@@ -1,11 +1,11 @@
-export default function PrivacyPage() {
+﻿export default function PrivacyPage() {
     return (
-        <div className="max-w-3xl mx-auto py-12 px-6 text-slate-300 space-y-8">
-            <h1 className="text-3xl font-bold text-white">隱私權政策</h1>
+        <div className="max-w-3xl mx-auto py-12 px-6 text-slate-600 space-y-8">
+            <h1 className="text-3xl font-bold text-slate-800">隱私權政策</h1>
             <p className="text-sm text-slate-500">最後更新日期：2026 年 3 月</p>
 
             <section className="space-y-3">
-                <h2 className="text-xl font-semibold text-white">一、資料蒐集範圍</h2>
+                <h2 className="text-xl font-semibold text-slate-800">一、資料蒐集範圍</h2>
                 <p>本系統為提供 ICOPE 長者內在能力檢測與地板滾球 AI 動作分析服務，將蒐集以下個人資料：</p>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
                     <li>長者基本資料（姓名、身分證字號、性別、出生日期、手機號碼）</li>
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-3">
-                <h2 className="text-xl font-semibold text-white">二、資料使用目的</h2>
+                <h2 className="text-xl font-semibold text-slate-800">二、資料使用目的</h2>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
                     <li>提供 ICOPE 前後測評估與追蹤服務</li>
                     <li>產生地板滾球 AI 動作分析報告</li>
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-3">
-                <h2 className="text-xl font-semibold text-white">三、資料保護措施</h2>
+                <h2 className="text-xl font-semibold text-slate-800">三、資料保護措施</h2>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
                     <li>所有資料儲存於 Supabase 雲端資料庫，啟用 Row Level Security (RLS)</li>
                     <li>傳輸過程全程使用 HTTPS 加密</li>
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-3">
-                <h2 className="text-xl font-semibold text-white">四、當事人權利</h2>
+                <h2 className="text-xl font-semibold text-slate-800">四、當事人權利</h2>
                 <p>依據《個人資料保護法》，您得行使以下權利：</p>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
                     <li>查詢或請求閱覽個人資料</li>
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-3">
-                <h2 className="text-xl font-semibold text-white">五、聯絡方式</h2>
+                <h2 className="text-xl font-semibold text-slate-800">五、聯絡方式</h2>
                 <p className="text-sm">如有任何隱私權相關問題，請聯繫惠生長照事業有限公司。</p>
             </section>
         </div>

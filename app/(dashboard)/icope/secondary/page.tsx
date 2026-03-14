@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -174,12 +174,12 @@ function SecondaryContent() {
         <div className="space-y-6 max-w-2xl mx-auto">
             {/* Header */}
             <div>
-                <button onClick={() => router.push('/icope')} className="text-slate-400 hover:text-white transition-colors text-sm mb-2">
+                <button onClick={() => router.push('/icope')} className="text-slate-400 hover:text-slate-800 transition-colors text-sm mb-2">
                     ← 返回評估列表
                 </button>
-                <h1 className="text-2xl font-bold text-white">📋 ICOPE 複評</h1>
+                <h1 className="text-2xl font-bold text-slate-800">📋 ICOPE 複評</h1>
                 <p className="text-sm text-slate-400 mt-1">
-                    長者：<span className="text-white font-medium">{patientName}</span>
+                    長者：<span className="text-slate-800 font-medium">{patientName}</span>
                 </p>
             </div>
 
@@ -191,13 +191,13 @@ function SecondaryContent() {
                     const isDone = i < currentIndex
                     return (
                         <div key={t} className="flex items-center gap-1.5 flex-1">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 ${isActive ? 'bg-primary-600 text-white' :
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 ${isActive ? 'bg-primary-600 text-slate-800' :
                                 isDone ? 'bg-emerald-500/20 text-emerald-400' :
-                                    'bg-white/5 text-slate-600'
+                                    'bg-slate-100 text-slate-600'
                                 }`}>
                                 {isDone ? '✓' : tc?.icon || '?'}
                             </div>
-                            {i < tasks.length - 1 && <div className={`h-0.5 flex-1 rounded ${isDone ? 'bg-emerald-500/30' : 'bg-white/5'}`} />}
+                            {i < tasks.length - 1 && <div className={`h-0.5 flex-1 rounded ${isDone ? 'bg-emerald-500/30' : 'bg-slate-100'}`} />}
                         </div>
                     )
                 })}
@@ -208,7 +208,7 @@ function SecondaryContent() {
                 <div className="flex items-center gap-3">
                     <span className="text-3xl">{config.icon}</span>
                     <div>
-                        <h2 className="text-xl font-bold text-white">{config.title}</h2>
+                        <h2 className="text-xl font-bold text-slate-800">{config.title}</h2>
                         <p className="text-sm text-slate-400 mt-0.5">{config.description}</p>
                     </div>
                 </div>
@@ -216,7 +216,7 @@ function SecondaryContent() {
                 {/* SPPB AI 測試按鈕 */}
                 {config.hasAiTest && currentTask === 'SPPB' && (
                     <div className="space-y-2">
-                        <p className="text-sm text-slate-300 font-medium">📸 AI 視覺測試（使用手機後鏡頭）</p>
+                        <p className="text-sm text-slate-600 font-medium">📸 AI 視覺測試（使用手機後鏡頭）</p>
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => setAiTestMode('chair_stand')}
@@ -224,7 +224,7 @@ function SecondaryContent() {
                             >
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-2xl">🪑</span>
-                                    <p className="text-white font-bold text-sm group-hover:text-blue-400 transition-colors">椅子起站測試</p>
+                                    <p className="text-slate-800 font-bold text-sm group-hover:text-blue-400 transition-colors">椅子起站測試</p>
                                 </div>
                                 <p className="text-[11px] text-slate-500 leading-tight">
                                     AI 自動計算起立坐下 5 次並計時
@@ -236,7 +236,7 @@ function SecondaryContent() {
                             >
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-2xl">⚖️</span>
-                                    <p className="text-white font-bold text-sm group-hover:text-purple-400 transition-colors">平衡測試</p>
+                                    <p className="text-slate-800 font-bold text-sm group-hover:text-purple-400 transition-colors">平衡測試</p>
                                 </div>
                                 <p className="text-[11px] text-slate-500 leading-tight">
                                     三階段闖關：並排→半並排→直線
@@ -244,9 +244,9 @@ function SecondaryContent() {
                             </button>
                         </div>
                         <div className="flex items-center gap-2 my-3">
-                            <div className="flex-1 h-px bg-white/10" />
+                            <div className="flex-1 h-px bg-slate-100" />
                             <span className="text-xs text-slate-600">或手動輸入分數</span>
-                            <div className="flex-1 h-px bg-white/10" />
+                            <div className="flex-1 h-px bg-slate-100" />
                         </div>
                     </div>
                 )}
@@ -255,7 +255,7 @@ function SecondaryContent() {
                 <div className="space-y-4">
                     {config.fields.map(field => (
                         <div key={field.key}>
-                            <label className="block text-sm text-slate-300 mb-1.5 font-medium">
+                            <label className="block text-sm text-slate-600 mb-1.5 font-medium">
                                 {field.label}
                                 {field.hint && (
                                     <span className="text-xs text-slate-500 font-normal ml-2">（{field.hint}）</span>
@@ -271,14 +271,14 @@ function SecondaryContent() {
                                     }}
                                     min={field.min}
                                     max={field.max}
-                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-lg focus:border-primary-500 focus:outline-none"
+                                    className="w-full px-4 py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-lg focus:border-primary-500 focus:outline-none"
                                     placeholder="輸入分數"
                                 />
                             ) : (
                                 <textarea
                                     value={(formData[field.key] as string) || ''}
                                     onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-base focus:border-primary-500 focus:outline-none resize-none"
+                                    className="w-full px-4 py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 text-base focus:border-primary-500 focus:outline-none resize-none"
                                     rows={3}
                                     placeholder="輸入評估結果..."
                                 />
@@ -310,7 +310,7 @@ function SecondaryContent() {
             <div className="flex gap-3">
                 <button
                     onClick={() => currentIndex > 0 ? setCurrentIndex(currentIndex - 1) : router.back()}
-                    className="flex-1 py-3.5 rounded-xl bg-white/5 text-slate-400 text-base font-medium hover:bg-white/10 transition-colors"
+                    className="flex-1 py-3.5 rounded-xl bg-slate-100 text-slate-400 text-base font-medium hover:bg-slate-100 transition-colors"
                 >
                     ← 上一步
                 </button>

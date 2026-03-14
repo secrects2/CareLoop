@@ -113,14 +113,14 @@ export default function CaseDashboard() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-white">📊 個案管理儀表板</h1>
+                <h1 className="text-2xl font-bold text-slate-800">📊 個案管理儀表板</h1>
                 <p className="text-slate-400 text-sm mt-1">追蹤與後測進度管控</p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <button onClick={() => setFilter('all')} className={`glass-card p-4 text-center transition-all ${filter === 'all' ? 'ring-2 ring-primary-500/50' : ''}`}>
-                    <p className="text-2xl font-bold text-white">{stats.total}</p>
+                    <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
                     <p className="text-xs text-slate-400">總個案</p>
                 </button>
                 <button onClick={() => setFilter('overdue')} className={`glass-card p-4 text-center transition-all ${filter === 'overdue' ? 'ring-2 ring-red-500/50' : ''}`}>
@@ -143,7 +143,7 @@ export default function CaseDashboard() {
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-white/5">
+                            <tr className="border-b border-slate-200">
                                 <th className="text-left text-xs text-slate-500 font-medium px-5 py-3">姓名</th>
                                 <th className="text-left text-xs text-slate-500 font-medium px-5 py-3">身分證字號</th>
                                 <th className="text-left text-xs text-slate-500 font-medium px-5 py-3">初評日期</th>
@@ -156,10 +156,10 @@ export default function CaseDashboard() {
                         <tbody>
                             {loading ? (
                                 Array.from({ length: 4 }).map((_, i) => (
-                                    <tr key={i} className="border-b border-white/5">
+                                    <tr key={i} className="border-b border-slate-200">
                                         {Array.from({ length: 7 }).map((_, j) => (
                                             <td key={j} className="px-5 py-4">
-                                                <div className="h-4 bg-white/5 rounded animate-pulse" />
+                                                <div className="h-4 bg-slate-100 rounded animate-pulse" />
                                             </td>
                                         ))}
                                     </tr>
@@ -181,9 +181,9 @@ export default function CaseDashboard() {
                                         : []
 
                                     return (
-                                        <tr key={c.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                        <tr key={c.id} className="border-b border-slate-200 hover:bg-white/[0.02] transition-colors">
                                             <td className="px-5 py-4">
-                                                <p className="text-white font-medium text-sm">{c.patients?.name || '—'}</p>
+                                                <p className="text-slate-800 font-medium text-sm">{c.patients?.name || '—'}</p>
                                             </td>
                                             <td className="px-5 py-4">
                                                 <p className="text-slate-400 text-sm font-mono">{c.patients?.id_number || '—'}</p>
@@ -259,7 +259,7 @@ export default function CaseDashboard() {
                     {loading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="p-4">
-                                <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                                <div className="h-16 bg-slate-100 rounded-xl animate-pulse" />
                             </div>
                         ))
                     ) : filteredCases.length === 0 ? (
@@ -279,7 +279,7 @@ export default function CaseDashboard() {
                                 <div key={c.id} className="p-4 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-white font-medium">{c.patients?.name || '—'}</p>
+                                            <p className="text-slate-800 font-medium">{c.patients?.name || '—'}</p>
                                             <p className="text-xs text-slate-500 font-mono">{c.patients?.id_number}</p>
                                         </div>
                                         <p className="text-xs text-slate-500">
@@ -310,7 +310,7 @@ export default function CaseDashboard() {
                                         {followUp.status === 'overdue' && (
                                             <button
                                                 onClick={() => markFollowUp(c.id)}
-                                                className="flex-1 py-2 rounded-lg bg-white/5 text-xs text-slate-400 hover:bg-white/10"
+                                                className="flex-1 py-2 rounded-lg bg-slate-100 text-xs text-slate-400 hover:bg-slate-100"
                                             >
                                                 ✓ 標記已追蹤
                                             </button>

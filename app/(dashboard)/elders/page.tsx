@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -138,7 +138,7 @@ export default function EldersPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">長輩管理</h1>
+                    <h1 className="text-2xl font-bold text-slate-800">長輩管理</h1>
                     <p className="text-slate-400 text-sm mt-1">管理您的長輩資料與分析紀錄</p>
                 </div>
                 <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
@@ -149,7 +149,7 @@ export default function EldersPage() {
             {/* Add Form */}
             {showForm && (
                 <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
-                    <h3 className="text-white font-semibold mb-2">新增長輩</h3>
+                    <h3 className="text-slate-800 font-semibold mb-2">新增長輩</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm text-slate-400 mb-1">姓名 *</label>
@@ -157,7 +157,7 @@ export default function EldersPage() {
                                 type="text"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 placeholder="請輸入長輩姓名"
                                 required
                             />
@@ -168,7 +168,7 @@ export default function EldersPage() {
                                 type="text"
                                 value={formData.id_number}
                                 onChange={e => setFormData({ ...formData, id_number: e.target.value.toUpperCase() })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors font-mono"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors font-mono"
                                 placeholder="例：A123456789"
                                 required
                                 maxLength={10}
@@ -179,7 +179,7 @@ export default function EldersPage() {
                             <select
                                 value={formData.gender}
                                 onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:border-primary-500 focus:outline-none transition-colors"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 focus:border-primary-500 focus:outline-none transition-colors"
                                 title="性別"
                             >
                                 <option value="male">男</option>
@@ -192,7 +192,7 @@ export default function EldersPage() {
                                 type="date"
                                 value={formData.birth_date}
                                 onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:border-primary-500 focus:outline-none transition-colors"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 focus:border-primary-500 focus:outline-none transition-colors"
                             />
                         </div>
                         <div>
@@ -201,7 +201,7 @@ export default function EldersPage() {
                                 type="tel"
                                 value={formData.phone}
                                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 placeholder="例：0912345678"
                             />
                         </div>
@@ -211,7 +211,7 @@ export default function EldersPage() {
                                 type="text"
                                 value={formData.chronic_diseases_input}
                                 onChange={e => setFormData({ ...formData, chronic_diseases_input: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 placeholder="以頓號分隔，例：高血壓、糖尿病"
                             />
                         </div>
@@ -221,7 +221,7 @@ export default function EldersPage() {
                                 type="text"
                                 value={formData.notes}
                                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 placeholder="健康狀況、注意事項等"
                             />
                         </div>
@@ -244,7 +244,7 @@ export default function EldersPage() {
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     placeholder="搜尋長輩姓名..."
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                 />
             </div>
 
@@ -258,7 +258,7 @@ export default function EldersPage() {
             ) : filteredElders.length === 0 ? (
                 <div className="glass-card p-12 text-center">
                     <p className="text-5xl mb-4">👥</p>
-                    <p className="text-white font-medium">尚無長輩資料</p>
+                    <p className="text-slate-800 font-medium">尚無長輩資料</p>
                     <p className="text-sm text-slate-400 mt-1">點擊上方「新增長輩」按鈕開始</p>
                 </div>
             ) : (
@@ -267,15 +267,15 @@ export default function EldersPage() {
                         <Link
                             key={elder.id}
                             href={`/elders/${elder.id}`}
-                            className="glass-card p-5 hover:bg-white/10 transition-all hover:scale-[1.01] group"
+                            className="glass-card p-5 hover:bg-slate-100 transition-all hover:scale-[1.01] group"
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold text-white ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
+                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold text-slate-800 ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
                                         {elder.name[0]}
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-white group-hover:text-primary-400 transition-colors">{elder.name}</h3>
+                                        <h3 className="font-semibold text-slate-800 group-hover:text-primary-400 transition-colors">{elder.name}</h3>
                                         <p className="text-xs text-slate-500">
                                             {elder.gender === 'female' ? '女' : '男'}
                                             {elder.birth_date && ` · ${elder.birth_date}`}

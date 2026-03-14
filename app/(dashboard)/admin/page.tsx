@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -111,7 +111,7 @@ export default function AdminPage() {
         if (action.includes('新增') || action.includes('啟用')) return 'text-emerald-400'
         if (action.includes('分析') || action.includes('AI')) return 'text-blue-400'
         if (action.includes('匯出')) return 'text-purple-400'
-        return 'text-slate-300'
+        return 'text-slate-600'
     }
 
     const formatTime = (dateStr: string) => {
@@ -133,14 +133,14 @@ export default function AdminPage() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-white">🔑 管理員控制台</h1>
+                <h1 className="text-2xl font-bold text-slate-800">🔑 管理員控制台</h1>
                 <p className="text-slate-400 text-sm mt-1">管理指導員帳號權限與查看操作紀錄</p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
                 <div className="glass-card p-4 text-center">
-                    <p className="text-2xl font-bold text-white">{instructors.length}</p>
+                    <p className="text-2xl font-bold text-slate-800">{instructors.length}</p>
                     <p className="text-xs text-slate-400">總帳號數</p>
                 </div>
                 <div className="glass-card p-4 text-center">
@@ -158,8 +158,8 @@ export default function AdminPage() {
                 <button
                     onClick={() => setActiveTab('instructors')}
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'instructors'
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                            ? 'bg-primary-600 text-slate-800'
+                            : 'bg-slate-100 text-slate-400 hover:bg-slate-100'
                         }`}
                 >
                     👥 指導員管理
@@ -167,8 +167,8 @@ export default function AdminPage() {
                 <button
                     onClick={() => setActiveTab('logs')}
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'logs'
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                            ? 'bg-primary-600 text-slate-800'
+                            : 'bg-slate-100 text-slate-400 hover:bg-slate-100'
                         }`}
                 >
                     📋 操作紀錄
@@ -178,12 +178,12 @@ export default function AdminPage() {
             {/* Tab: Instructors */}
             {activeTab === 'instructors' && (
                 <div className="glass-card p-6">
-                    <h2 className="text-lg font-semibold text-white mb-4">指導員列表</h2>
+                    <h2 className="text-lg font-semibold text-slate-800 mb-4">指導員列表</h2>
 
                     {loading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                                <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />
                             ))}
                         </div>
                     ) : instructors.length === 0 ? (
@@ -196,20 +196,20 @@ export default function AdminPage() {
                             {instructors.map((instructor) => (
                                 <div
                                     key={instructor.id}
-                                    className={`flex items-center justify-between p-4 rounded-xl transition-colors ${instructor.is_active ? 'bg-white/5 hover:bg-white/10' : 'bg-red-500/5 border border-red-500/10'
+                                    className={`flex items-center justify-between p-4 rounded-xl transition-colors ${instructor.is_active ? 'bg-slate-100 hover:bg-slate-100' : 'bg-red-500/5 border border-red-500/10'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
                                         {instructor.avatar_url ? (
                                             <img src={instructor.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                                         ) : (
-                                            <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold">
+                                            <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-slate-800 text-sm font-bold">
                                                 {instructor.full_name?.[0] || '?'}
                                             </div>
                                         )}
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <p className="text-white font-medium">{instructor.full_name}</p>
+                                                <p className="text-slate-800 font-medium">{instructor.full_name}</p>
                                                 {instructor.role === 'admin' && (
                                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                                                         管理員
@@ -252,10 +252,10 @@ export default function AdminPage() {
             {activeTab === 'logs' && (
                 <div className="glass-card p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-white">操作紀錄</h2>
+                        <h2 className="text-lg font-semibold text-slate-800">操作紀錄</h2>
                         <button
                             onClick={fetchLogs}
-                            className="text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10"
+                            className="text-xs text-slate-400 hover:text-slate-800 transition-colors px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-100"
                         >
                             🔄 重新整理
                         </button>
@@ -264,7 +264,7 @@ export default function AdminPage() {
                     {logsLoading ? (
                         <div className="space-y-3">
                             {[1, 2, 3, 4, 5].map(i => (
-                                <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse" />
+                                <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
                             ))}
                         </div>
                     ) : logs.length === 0 ? (
@@ -277,7 +277,7 @@ export default function AdminPage() {
                             {logs.map((log) => (
                                 <div
                                     key={log.id}
-                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-100 transition-colors"
                                 >
                                     <span className="text-lg mt-0.5">{getActionIcon(log.action)}</span>
                                     <div className="flex-1 min-w-0">

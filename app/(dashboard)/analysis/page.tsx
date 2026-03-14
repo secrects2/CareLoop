@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -48,7 +48,7 @@ export default function AnalysisListPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-white">🎳 地板滾球分析</h1>
+                <h1 className="text-2xl font-bold text-slate-800">🎳 地板滾球分析</h1>
                 <p className="text-slate-400 text-sm mt-1">選擇長輩進行 AI 動作分析</p>
             </div>
 
@@ -62,7 +62,7 @@ export default function AnalysisListPage() {
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     placeholder="搜尋長輩姓名..."
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                 />
             </div>
 
@@ -76,7 +76,7 @@ export default function AnalysisListPage() {
             ) : filtered.length === 0 ? (
                 <div className="glass-card p-12 text-center">
                     <p className="text-5xl mb-4">🎳</p>
-                    <p className="text-white font-medium">尚無長輩資料</p>
+                    <p className="text-slate-800 font-medium">尚無長輩資料</p>
                     <p className="text-sm text-slate-400 mt-1">請先至「長輩管理」新增長輩</p>
                     <Link href="/elders?add=true" className="btn-accent text-sm mt-4 inline-block">
                         + 新增長輩
@@ -88,15 +88,15 @@ export default function AnalysisListPage() {
                         <Link
                             key={elder.id}
                             href={`/analysis/${elder.id}`}
-                            className="glass-card p-5 hover:bg-white/10 transition-all hover:scale-[1.01] group"
+                            className="glass-card p-5 hover:bg-slate-100 transition-all hover:scale-[1.01] group"
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold text-white ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
+                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold text-slate-800 ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
                                         {elder.name[0]}
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-white group-hover:text-primary-400 transition-colors">{elder.name}</h3>
+                                        <h3 className="font-semibold text-slate-800 group-hover:text-primary-400 transition-colors">{elder.name}</h3>
                                         <p className="text-xs text-slate-500">
                                             {elder.gender === 'female' ? '女' : '男'}
                                             {elder.birth_date && ` · ${elder.birth_date}`}

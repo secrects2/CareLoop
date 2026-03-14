@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
@@ -75,7 +75,7 @@ export default function AiLabPage() {
             <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
                 <div className="text-center space-y-4 p-6">
                     <p className="text-6xl">🏋️</p>
-                    <h2 className="text-2xl font-bold text-white">地板滾球姿勢分析</h2>
+                    <h2 className="text-2xl font-bold text-slate-800">地板滾球姿勢分析</h2>
                     <p className="text-slate-400 text-sm">
                         請至「地板滾球分析」功能中選擇長者後使用完整分析功能。
                         <br />
@@ -83,7 +83,7 @@ export default function AiLabPage() {
                     </p>
                     <button
                         onClick={() => setActiveTest(null)}
-                        className="px-6 py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+                        className="px-6 py-3 rounded-xl bg-slate-100 text-slate-800 font-medium hover:bg-slate-200 transition-colors"
                     >
                         ← 返回測試區
                     </button>
@@ -96,7 +96,7 @@ export default function AiLabPage() {
         <div className="space-y-6 max-w-3xl mx-auto">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-white">🧪 AI 分析功能測試區</h1>
+                <h1 className="text-2xl font-bold text-slate-800">🧪 AI 分析功能測試區</h1>
                 <p className="text-sm text-slate-400 mt-1">
                     獨立測試 AI 視覺分析功能，不需對應長者資料，結果不會寫入資料庫
                 </p>
@@ -130,7 +130,7 @@ export default function AiLabPage() {
                                 <span className="text-4xl">{test.icon}</span>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h3 className={`text-lg font-bold text-white group-hover:${colors.text} transition-colors`}>
+                                        <h3 className={`text-lg font-bold text-slate-800 group-hover:${colors.text} transition-colors`}>
                                             {test.title}
                                         </h3>
                                         <span className="text-xs text-slate-600">{test.subtitle}</span>
@@ -138,7 +138,7 @@ export default function AiLabPage() {
                                     <p className="text-sm text-slate-400 mb-3">{test.description}</p>
                                     <div className="flex flex-wrap gap-2">
                                         {test.features.map((f, i) => (
-                                            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-slate-500">
+                                            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                                                 {f}
                                             </span>
                                         ))}

@@ -217,7 +217,7 @@ export default function ChairStandCamera({
                 {(!cameraReady || !poseLoaded) && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
                         <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                        <p className="text-white mt-4 text-lg font-medium">
+                        <p className="text-slate-800 mt-4 text-lg font-medium">
                             {!cameraReady ? '開啟相機中...' : '載入骨架偵測引擎...'}
                         </p>
                     </div>
@@ -240,7 +240,7 @@ export default function ChairStandCamera({
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20"
+                                    className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 text-xl hover:bg-slate-200"
                                     title="關閉"
                                 >
                                     ✕
@@ -252,7 +252,7 @@ export default function ChairStandCamera({
                         {testState !== 'FINISHED' && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="text-center">
-                                    <p className="text-[120px] font-black text-white leading-none drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
+                                    <p className="text-[120px] font-black text-slate-800 leading-none drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
                                         {repCount}
                                         <span className="text-4xl text-slate-400">/5</span>
                                     </p>
@@ -265,15 +265,15 @@ export default function ChairStandCamera({
                             {testState !== 'FINISHED' ? (
                                 <div className="flex items-center justify-around">
                                     <div className="text-center">
-                                        <p className="text-3xl font-bold text-white">{elapsedTime}s</p>
+                                        <p className="text-3xl font-bold text-slate-800">{elapsedTime}s</p>
                                         <p className="text-[10px] text-slate-500">經過時間</p>
                                     </div>
-                                    <div className="w-px h-8 bg-white/10" />
+                                    <div className="w-px h-8 bg-slate-100" />
                                     <div className="text-center">
-                                        <p className="text-3xl font-bold text-white">{kneeAngle ?? '—'}°</p>
+                                        <p className="text-3xl font-bold text-slate-800">{kneeAngle ?? '—'}°</p>
                                         <p className="text-[10px] text-slate-500">膝關節角度</p>
                                     </div>
-                                    <div className="w-px h-8 bg-white/10" />
+                                    <div className="w-px h-8 bg-slate-100" />
                                     <div className="text-center">
                                         <p className={`text-3xl font-bold ${stateInfo.color}`}>{repCount}</p>
                                         <p className="text-[10px] text-slate-500">完成次數</p>
@@ -284,15 +284,15 @@ export default function ChairStandCamera({
                                     {/* 結果摘要 */}
                                     <div className="flex items-center justify-around">
                                         <div className="text-center">
-                                            <p className="text-3xl font-bold text-white">{result.timeSeconds}s</p>
+                                            <p className="text-3xl font-bold text-slate-800">{result.timeSeconds}s</p>
                                             <p className="text-[10px] text-slate-500">總耗時</p>
                                         </div>
-                                        <div className="w-px h-10 bg-white/10" />
+                                        <div className="w-px h-10 bg-slate-100" />
                                         <div className="text-center">
                                             <p className={`text-5xl font-black ${verdict.color}`}>{result.score}</p>
                                             <p className="text-[10px] text-slate-500">分數 / 4</p>
                                         </div>
-                                        <div className="w-px h-10 bg-white/10" />
+                                        <div className="w-px h-10 bg-slate-100" />
                                         <div className="text-center">
                                             <p className={`text-lg font-bold ${verdict.color}`}>{verdict.label}</p>
                                             <p className="text-[10px] text-slate-500">判定</p>
@@ -305,14 +305,14 @@ export default function ChairStandCamera({
                                                 reset()
                                                 setResult(null)
                                             }}
-                                            className="flex-1 py-3 rounded-xl bg-white/10 text-white font-medium"
+                                            className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-800 font-medium"
                                         >
                                             🔄 重測
                                         </button>
                                         <button
                                             onClick={onClose}
                                             disabled={saving}
-                                            className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold disabled:opacity-50"
+                                            className="flex-1 py-3 rounded-xl bg-emerald-600 text-slate-800 font-bold disabled:opacity-50"
                                         >
                                             {saving ? '儲存中...' : '✓ 完成'}
                                         </button>

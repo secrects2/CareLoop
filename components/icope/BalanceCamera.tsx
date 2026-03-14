@@ -205,7 +205,7 @@ export default function BalanceCamera({
                 {(!cameraReady || !poseLoaded) && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
                         <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                        <p className="text-white mt-4 text-lg font-medium">
+                        <p className="text-slate-800 mt-4 text-lg font-medium">
                             {!cameraReady ? '開啟相機中...' : '載入骨架偵測引擎...'}
                         </p>
                     </div>
@@ -219,10 +219,10 @@ export default function BalanceCamera({
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <span className="bg-primary-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                        <span className="bg-primary-600 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-full">
                                             {stageNumber}/3
                                         </span>
-                                        <h2 className="text-lg font-bold text-white">
+                                        <h2 className="text-lg font-bold text-slate-800">
                                             {STAGE_NAMES[currentStage]}
                                         </h2>
                                     </div>
@@ -233,7 +233,7 @@ export default function BalanceCamera({
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xl hover:bg-white/20"
+                                    className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 text-xl hover:bg-slate-200"
                                     title="關閉"
                                 >
                                     ✕
@@ -244,7 +244,7 @@ export default function BalanceCamera({
                             <div className="flex gap-1.5 mt-3">
                                 {(['SIDE_BY_SIDE', 'SEMI_TANDEM', 'TANDEM'] as const).map((stage, i) => {
                                     const r = stageResults.find(s => s.stage === stage)
-                                    let bgColor = 'bg-white/10'
+                                    let bgColor = 'bg-slate-100'
                                     if (r?.passed) bgColor = 'bg-emerald-500'
                                     else if (r && !r.passed) bgColor = 'bg-red-500'
                                     else if (stage === currentStage) bgColor = 'bg-primary-500 animate-pulse'
@@ -263,7 +263,7 @@ export default function BalanceCamera({
                                             <p className="text-6xl font-black text-amber-400 drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)] animate-pulse">
                                                 請擺出姿勢
                                             </p>
-                                            <p className="text-xl text-white/60 mt-2">{STAGE_DESCRIPTIONS[currentStage]}</p>
+                                            <p className="text-xl text-slate-800/60 mt-2">{STAGE_DESCRIPTIONS[currentStage]}</p>
                                         </>
                                     )}
                                     {poseState === 'HOLDING' && (
@@ -271,7 +271,7 @@ export default function BalanceCamera({
                                             <p className="text-[100px] font-black text-emerald-400 leading-none drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]">
                                                 {countdown}
                                             </p>
-                                            <p className="text-xl text-white/80 mt-2 font-medium">維持中...</p>
+                                            <p className="text-xl text-slate-800/80 mt-2 font-medium">維持中...</p>
                                         </>
                                     )}
                                     {poseState === 'FAILED' && failReason && (
@@ -291,7 +291,7 @@ export default function BalanceCamera({
                                 <>
                                     {/* 維持進度條 */}
                                     {poseState === 'HOLDING' && (
-                                        <div className="mb-3 h-2 bg-white/10 rounded-full overflow-hidden">
+                                        <div className="mb-3 h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                                                 style={{ width: `${progressPercent}%` }}
@@ -301,19 +301,19 @@ export default function BalanceCamera({
 
                                     <div className="flex items-center justify-around">
                                         <div className="text-center">
-                                            <p className="text-3xl font-bold text-white">{holdTime.toFixed(1)}s</p>
+                                            <p className="text-3xl font-bold text-slate-800">{holdTime.toFixed(1)}s</p>
                                             <p className="text-[10px] text-slate-500">維持時間</p>
                                         </div>
-                                        <div className="w-px h-8 bg-white/10" />
+                                        <div className="w-px h-8 bg-slate-100" />
                                         <div className="text-center">
                                             <p className={`text-3xl font-bold ${poseState === 'HOLDING' ? 'text-emerald-400' : 'text-amber-400'}`}>
                                                 {poseState === 'DETECTING' ? '偵測中' : poseState === 'HOLDING' ? '穩定' : '失敗'}
                                             </p>
                                             <p className="text-[10px] text-slate-500">姿態狀態</p>
                                         </div>
-                                        <div className="w-px h-8 bg-white/10" />
+                                        <div className="w-px h-8 bg-slate-100" />
                                         <div className="text-center">
-                                            <p className="text-3xl font-bold text-white">
+                                            <p className="text-3xl font-bold text-slate-800">
                                                 {stability?.shoulderTilt ?? 0}°
                                             </p>
                                             <p className="text-[10px] text-slate-500">肩膀傾斜</p>
@@ -349,14 +349,14 @@ export default function BalanceCamera({
                                                 reset()
                                                 setFinalResult(null)
                                             }}
-                                            className="flex-1 py-3 rounded-xl bg-white/10 text-white font-medium"
+                                            className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-800 font-medium"
                                         >
                                             🔄 重測
                                         </button>
                                         <button
                                             onClick={onClose}
                                             disabled={saving}
-                                            className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold disabled:opacity-50"
+                                            className="flex-1 py-3 rounded-xl bg-emerald-600 text-slate-800 font-bold disabled:opacity-50"
                                         >
                                             {saving ? '儲存中...' : '✓ 完成'}
                                         </button>

@@ -187,7 +187,7 @@ export default function SppbAssessmentForm({
         variant?: 'default' | 'success' | 'danger'
     }) => {
         const activeClasses = {
-            default: 'bg-primary-600/20 border-primary-500/50 text-white',
+            default: 'bg-primary-600/20 border-primary-500/50 text-slate-800',
             success: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400',
             danger: 'bg-red-500/20 border-red-500/50 text-red-400',
         }
@@ -198,7 +198,7 @@ export default function SppbAssessmentForm({
                 onClick={onClick}
                 className={`w-full p-4 rounded-xl text-left transition-all border-2 min-h-[56px] ${checked
                         ? activeClasses[variant]
-                        : 'bg-white/5 border-transparent text-slate-400 hover:bg-white/10'
+                        : 'bg-slate-100 border-transparent text-slate-400 hover:bg-slate-100'
                     }`}
             >
                 <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ export default function SppbAssessmentForm({
 
     /** 分數指示器 */
     const ScoreBadge = ({ score, max, label }: { score: number; max: number; label: string }) => (
-        <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-100">
             <span className="text-sm text-slate-400">{label}</span>
             <span className={`text-lg font-bold ${score >= max * 0.75 ? 'text-emerald-400' :
                     score >= max * 0.5 ? 'text-amber-400' :
@@ -235,10 +235,10 @@ export default function SppbAssessmentForm({
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl">🦿</div>
                     <div className="flex-1">
-                        <h2 className="text-xl font-bold text-white">SPPB 簡易身體表現功能量表</h2>
+                        <h2 className="text-xl font-bold text-slate-800">SPPB 簡易身體表現功能量表</h2>
                         <p className="text-sm text-slate-400">
                             Short Physical Performance Battery
-                            {patientName && <span className="ml-2">· 長者：<span className="text-white">{patientName}</span></span>}
+                            {patientName && <span className="ml-2">· 長者：<span className="text-slate-800">{patientName}</span></span>}
                         </p>
                     </div>
                 </div>
@@ -252,7 +252,7 @@ export default function SppbAssessmentForm({
                     <div className="flex items-center gap-3">
                         <span className="text-2xl">⚖️</span>
                         <div>
-                            <h3 className="text-lg font-bold text-white">平衡測試</h3>
+                            <h3 className="text-lg font-bold text-slate-800">平衡測試</h3>
                             <p className="text-xs text-slate-500">依序進行三種站立姿勢</p>
                         </div>
                     </div>
@@ -261,7 +261,7 @@ export default function SppbAssessmentForm({
 
                 {/* 並排站立 */}
                 <div className="space-y-2">
-                    <p className="text-sm text-slate-300 font-medium">
+                    <p className="text-sm text-slate-600 font-medium">
                         ① 並排站立（Side-by-side）
                         <span className="text-xs text-slate-500 ml-2">雙腳並排，維持 10 秒</span>
                     </p>
@@ -284,7 +284,7 @@ export default function SppbAssessmentForm({
                 {/* 半並排站立 */}
                 {watched.sideBySide && (
                     <div className="space-y-2">
-                        <p className="text-sm text-slate-300 font-medium">
+                        <p className="text-sm text-slate-600 font-medium">
                             ② 半並排站立（Semi-tandem）
                             <span className="text-xs text-slate-500 ml-2">一腳腳跟靠另一腳中段，維持 10 秒</span>
                         </p>
@@ -308,7 +308,7 @@ export default function SppbAssessmentForm({
                 {/* 直線站立 */}
                 {watched.sideBySide && watched.semiTandem && (
                     <div className="space-y-2">
-                        <p className="text-sm text-slate-300 font-medium">
+                        <p className="text-sm text-slate-600 font-medium">
                             ③ 直線站立（Tandem）
                             <span className="text-xs text-slate-500 ml-2">一腳腳跟緊貼另一腳腳尖</span>
                         </p>
@@ -324,7 +324,7 @@ export default function SppbAssessmentForm({
                                 className="flex-1 h-3 rounded-full appearance-none cursor-pointer accent-primary-500"
                                 style={{ background: `linear-gradient(to right, var(--primary-500) ${(watched.tandemSeconds ?? 0) * 10}%, rgba(255,255,255,0.1) ${(watched.tandemSeconds ?? 0) * 10}%)` }}
                             />
-                            <span className="text-xl font-bold text-white w-16 text-center">
+                            <span className="text-xl font-bold text-slate-800 w-16 text-center">
                                 {watched.tandemSeconds ?? 0}
                                 <span className="text-xs text-slate-600"> 秒</span>
                             </span>
@@ -341,7 +341,7 @@ export default function SppbAssessmentForm({
                     <div className="flex items-center gap-3">
                         <span className="text-2xl">🚶</span>
                         <div>
-                            <h3 className="text-lg font-bold text-white">步行速度測試</h3>
+                            <h3 className="text-lg font-bold text-slate-800">步行速度測試</h3>
                             <p className="text-xs text-slate-500">一般步行速度計時</p>
                         </div>
                     </div>
@@ -350,7 +350,7 @@ export default function SppbAssessmentForm({
 
                 {/* 距離切換 */}
                 <div className="space-y-2">
-                    <p className="text-sm text-slate-300 font-medium">測試距離</p>
+                    <p className="text-sm text-slate-600 font-medium">測試距離</p>
                     <div className="grid grid-cols-2 gap-2">
                         <RadioOption
                             checked={watched.gaitDistance === '4'}
@@ -378,7 +378,7 @@ export default function SppbAssessmentForm({
                 {/* 秒數輸入 */}
                 {!watched.gaitUnable && (
                     <div>
-                        <label className="text-sm text-slate-300 font-medium block mb-1.5">
+                        <label className="text-sm text-slate-600 font-medium block mb-1.5">
                             步行時間（秒）
                         </label>
                         <input
@@ -387,7 +387,7 @@ export default function SppbAssessmentForm({
                             min="0"
                             value={watched.gaitSeconds ?? ''}
                             onChange={e => setValue('gaitSeconds', e.target.value === '' ? null : Number(e.target.value))}
-                            className="w-full px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-white text-2xl font-bold text-center focus:border-primary-500 focus:outline-none"
+                            className="w-full px-5 py-4 rounded-xl bg-slate-100 border border-white/10 text-slate-800 text-2xl font-bold text-center focus:border-primary-500 focus:outline-none"
                             placeholder="輸入秒數"
                         />
                     </div>
@@ -402,7 +402,7 @@ export default function SppbAssessmentForm({
                     <div className="flex items-center gap-3">
                         <span className="text-2xl">🪑</span>
                         <div>
-                            <h3 className="text-lg font-bold text-white">椅子起站測試</h3>
+                            <h3 className="text-lg font-bold text-slate-800">椅子起站測試</h3>
                             <p className="text-xs text-slate-500">雙手交叉胸前，起立坐下 5 次計時</p>
                         </div>
                     </div>
@@ -420,7 +420,7 @@ export default function SppbAssessmentForm({
                 {/* 秒數輸入 */}
                 {!watched.chairUnable && (
                     <div>
-                        <label className="text-sm text-slate-300 font-medium block mb-1.5">
+                        <label className="text-sm text-slate-600 font-medium block mb-1.5">
                             完成 5 次所需時間（秒）
                         </label>
                         <input
@@ -429,7 +429,7 @@ export default function SppbAssessmentForm({
                             min="0"
                             value={watched.chairSeconds ?? ''}
                             onChange={e => setValue('chairSeconds', e.target.value === '' ? null : Number(e.target.value))}
-                            className="w-full px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-white text-2xl font-bold text-center focus:border-primary-500 focus:outline-none"
+                            className="w-full px-5 py-4 rounded-xl bg-slate-100 border border-white/10 text-slate-800 text-2xl font-bold text-center focus:border-primary-500 focus:outline-none"
                             placeholder="輸入秒數"
                         />
                     </div>
@@ -475,7 +475,7 @@ export default function SppbAssessmentForm({
                                             : scores.total >= 4
                                                 ? 'bg-orange-500'
                                                 : 'bg-red-500'
-                                    : 'bg-white/10'
+                                    : 'bg-slate-100'
                                 }`}
                         />
                     ))}
@@ -495,7 +495,7 @@ export default function SppbAssessmentForm({
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="flex-1 py-4 rounded-xl bg-white/5 text-slate-400 text-base font-medium hover:bg-white/10 transition-colors"
+                    className="flex-1 py-4 rounded-xl bg-slate-100 text-slate-400 text-base font-medium hover:bg-slate-100 transition-colors"
                 >
                     ← 返回
                 </button>

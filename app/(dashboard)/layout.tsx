@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
@@ -118,7 +118,7 @@ export default function DashboardLayout({
                         {profile?.avatar_url ? (
                             <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-full" />
                         ) : (
-                            <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold">
+                            <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-slate-800 text-sm font-bold">
                                 {profile?.full_name?.[0] || '?'}
                             </div>
                         )}
