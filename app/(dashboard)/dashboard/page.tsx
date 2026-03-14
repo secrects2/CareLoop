@@ -86,24 +86,39 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions — with images */}
             <div className="glass-card p-6">
-                <h2 className="text-lg font-semibold text-slate-800 mb-4">快速操作</h2>
+                <h2 className="section-title mb-4">快速操作</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Link href="/elders" className="p-4 rounded-xl bg-slate-100 hover:bg-slate-100 transition-colors border border-slate-200 text-center">
-                        <span className="text-3xl block mb-2">👤</span>
-                        <p className="text-slate-800 font-medium">管理長輩</p>
-                        <p className="text-xs text-slate-400 mt-1">新增或查看長輩資料</p>
+                    <Link href="/elders" className="group rounded-2xl overflow-hidden border border-[#eee] hover:shadow-md transition-shadow">
+                        <div className="relative h-28 overflow-hidden">
+                            <img src="/images/health-assessment.png" alt="管理長輩" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                            <p className="absolute bottom-2 left-3 text-white font-bold text-sm">管理長輩</p>
+                        </div>
+                        <div className="p-3">
+                            <p className="text-xs text-[#888]">新增或查看長輩資料</p>
+                        </div>
                     </Link>
-                    <Link href="/elders" className="p-4 rounded-xl bg-slate-100 hover:bg-slate-100 transition-colors border border-slate-200 text-center">
-                        <span className="text-3xl block mb-2">🎯</span>
-                        <p className="text-slate-800 font-medium">開始分析</p>
-                        <p className="text-xs text-slate-400 mt-1">選擇長輩進行 AI 分析</p>
+                    <Link href="/elders" className="group rounded-2xl overflow-hidden border border-[#eee] hover:shadow-md transition-shadow">
+                        <div className="relative h-28 overflow-hidden">
+                            <img src="/images/floor-curling.png" alt="開始分析" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                            <p className="absolute bottom-2 left-3 text-white font-bold text-sm">開始分析</p>
+                        </div>
+                        <div className="p-3">
+                            <p className="text-xs text-[#888]">選擇長輩進行 AI 動作分析</p>
+                        </div>
                     </Link>
-                    <Link href="/elders" className="p-4 rounded-xl bg-slate-100 hover:bg-slate-100 transition-colors border border-slate-200 text-center">
-                        <span className="text-3xl block mb-2">📥</span>
-                        <p className="text-slate-800 font-medium">匯出報告</p>
-                        <p className="text-xs text-slate-400 mt-1">下載前後測 Excel 檔案</p>
+                    <Link href="/elders" className="group rounded-2xl overflow-hidden border border-[#eee] hover:shadow-md transition-shadow">
+                        <div className="relative h-28 overflow-hidden">
+                            <img src="/images/exercise-elderly.png" alt="匯出報告" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                            <p className="absolute bottom-2 left-3 text-white font-bold text-sm">匯出報告</p>
+                        </div>
+                        <div className="p-3">
+                            <p className="text-xs text-[#888]">下載前後測 Excel 檔案</p>
+                        </div>
                     </Link>
                 </div>
             </div>

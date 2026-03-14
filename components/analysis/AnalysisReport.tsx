@@ -462,6 +462,9 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                 {/* ===== 9. AI 建議處方 ===== */}
                 <section className="space-y-3">
                     <h2 className="section-title">AI 訓練建議</h2>
+                    <div className="rounded-2xl overflow-hidden mb-2">
+                        <img src="/images/balance-training.png" alt="訓練建議" className="w-full h-32 object-cover" />
+                    </div>
                     <div className="space-y-4">
                         {report.prescriptions.map((rx, i) => {
                             const style = PRIORITY_STYLES[rx.priority]
@@ -483,11 +486,11 @@ export default function AnalysisReport({ metrics, patientName, sessionDate, dura
                                     <div className="space-y-1.5">
                                         {rx.exercises.map((ex, j) => (
                                             <div key={j} className="flex items-start gap-2 text-xs text-[#666]">
-                                                <span className="text-white font-bold shrink-0">{j + 1}.</span><span>{ex}</span>
+                                                <span className="text-[#333] font-bold shrink-0">{j + 1}.</span><span>{ex}</span>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="pt-2 border-t border-white/5">
+                                    <div className="pt-2 border-t border-[#eee]">
                                         <p className="text-[11px] text-slate-500">📅 建議頻率：{rx.frequency}</p>
                                     </div>
                                 </div>
