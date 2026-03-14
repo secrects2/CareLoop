@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Users, Bot, ClipboardCheck, CheckCircle2, TrendingUp, Clock } from 'lucide-react'
 
 interface Stats {
     elderCount: number
@@ -53,10 +54,10 @@ export default function DashboardPage() {
     }, [])
 
     const statsCards = [
-        { label: '管理長輩', value: stats.elderCount, icon: '👥', color: 'from-blue-500 to-blue-700' },
-        { label: '分析次數', value: stats.sessionCount, icon: '🤖', color: 'from-emerald-500 to-emerald-700' },
-        { label: '前測完成', value: stats.preTestCount, icon: '📋', color: 'from-amber-500 to-amber-700' },
-        { label: '後測完成', value: stats.postTestCount, icon: '✅', color: 'from-purple-500 to-purple-700' },
+        { label: '管理長輩', value: stats.elderCount, icon: Users, color: 'from-teal-500 to-teal-600', iconBg: 'bg-teal-50 text-teal-600' },
+        { label: '分析次數', value: stats.sessionCount, icon: Bot, color: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-50 text-blue-600' },
+        { label: '前測完成', value: stats.preTestCount, icon: ClipboardCheck, color: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-50 text-amber-600' },
+        { label: '後測完成', value: stats.postTestCount, icon: CheckCircle2, color: 'from-emerald-500 to-emerald-600', iconBg: 'bg-emerald-50 text-emerald-600' },
     ]
 
     return (
@@ -77,7 +78,9 @@ export default function DashboardPage() {
                 {statsCards.map((card, i) => (
                     <div key={i} className="glass-card p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform">
                         <div className={`absolute top-0 right-0 w-20 h-20 rounded-bl-[40px] bg-gradient-to-br ${card.color} opacity-10 group-hover:opacity-20 transition-opacity`} />
-                        <p className="text-3xl mb-1">{card.icon}</p>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${card.iconBg}`}>
+                            <card.icon className="w-5 h-5" />
+                        </div>
                         <p className="text-2xl font-bold text-slate-800">
                             {loading ? <span className="inline-block w-8 h-6 bg-slate-700 rounded animate-pulse" /> : card.value}
                         </p>

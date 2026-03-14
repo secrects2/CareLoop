@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
+import { LayoutDashboard, Users, ClipboardList, Target, FlaskConical, ShieldCheck, LogOut } from 'lucide-react'
 
 interface Profile {
     id: string
@@ -56,12 +57,12 @@ export default function DashboardLayout({
     }
 
     const navItems = [
-        { href: '/dashboard', label: '儀表板', icon: '📊' },
-        { href: '/elders', label: '長輩管理', icon: '👥' },
-        { href: '/icope', label: 'ICOPE 評估', icon: '📋' },
-        { href: '/analysis', label: '地板滾球分析', icon: '🎳' },
-        { href: '/ai-lab', label: 'AI 分析測試區', icon: '🧪' },
-        ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: '🔑' }] : []),
+        { href: '/dashboard', label: '儀表板', icon: LayoutDashboard },
+        { href: '/elders', label: '長輩管理', icon: Users },
+        { href: '/icope', label: 'ICOPE 評估', icon: ClipboardList },
+        { href: '/analysis', label: '地板滾球分析', icon: Target },
+        { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical },
+        ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: ShieldCheck }] : []),
     ]
 
     if (!user) {
@@ -106,7 +107,7 @@ export default function DashboardLayout({
                             onClick={() => setSidebarOpen(false)}
                             className={`sidebar-item ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
                         >
-                            <span className="text-lg">{item.icon}</span>
+                            <item.icon className="w-5 h-5" />
                             <span>{item.label}</span>
                         </Link>
                     ))}
@@ -129,9 +130,10 @@ export default function DashboardLayout({
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="w-full text-left text-sm text-slate-500 hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
+                        className="w-full text-left text-sm text-slate-500 hover:text-red-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50 flex items-center gap-2"
                     >
-                        🚪 退出登入
+                        <LogOut className="w-4 h-4" />
+                        退出登入
                     </button>
                 </div>
             </aside>
