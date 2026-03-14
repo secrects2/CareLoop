@@ -94,7 +94,7 @@ export default function DashboardPage() {
                 <h2 className="section-title mb-4">快速操作</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Link href="/elders" className="group rounded-2xl overflow-hidden border border-[#eee] hover:shadow-md transition-shadow">
-                        <div className="relative h-40 overflow-hidden">
+                        <div className="relative h-48 sm:h-80 overflow-hidden">
                             <img src="/images/health-assessment.png" alt="管理長輩" className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                             <p className="absolute bottom-2 left-3 text-white font-bold text-sm">管理長輩</p>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
                         </div>
                     </Link>
                     <Link href="/elders" className="group rounded-2xl overflow-hidden border border-[#eee] hover:shadow-md transition-shadow">
-                        <div className="relative h-40 overflow-hidden">
+                        <div className="relative h-48 sm:h-80 overflow-hidden">
                             <img src="/images/floor-curling.png" alt="開始分析" className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                             <p className="absolute bottom-2 left-3 text-white font-bold text-sm">開始分析</p>
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                         </div>
                     </Link>
                     <Link href="/elders" className="group rounded-2xl overflow-hidden border border-[#eee] hover:shadow-md transition-shadow">
-                        <div className="relative h-40 overflow-hidden">
+                        <div className="relative h-48 sm:h-80 overflow-hidden">
                             <img src="/images/exercise-elderly.png" alt="匯出報告" className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                             <p className="absolute bottom-2 left-3 text-white font-bold text-sm">匯出報告</p>
