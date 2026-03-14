@@ -100,17 +100,6 @@ const guideData: GuideItem[] = [
             '所有匯出檔案支援繁體中文，可直接用 Excel 開啟',
         ],
     },
-    {
-        title: '管理員功能',
-        icon: '⚙️',
-        content: [
-            '僅限管理員角色可使用',
-            '指導員管理：查看所有帳號、啟用/停用指導員帳號',
-            '操作紀錄：查看所有人的操作歷程',
-            '支援人員篩選、日期範圍、關鍵字搜尋',
-            '可匯出操作紀錄為 CSV 檔案',
-        ],
-    },
 ]
 
 function AccordionItem({ item }: { item: GuideItem }) {
