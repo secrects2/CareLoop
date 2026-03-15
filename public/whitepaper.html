@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>惠生檢測平台 AI 運動表現分析系統 — 循證醫學與合規性技術白皮書</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    color: #2d3748;
+    line-height: 1.8;
+    font-size: 14px;
+    background: #fff;
+  }
+  @media print {
+    body { font-size: 11pt; }
+    .cover { page-break-after: always; }
+    section { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+    .no-print { display: none !important; }
+  }
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #0d9488 0%, #134e4a 100%);
+    color: white;
+    padding: 60px 40px;
+  }
+  .cover h1 { font-size: 2.4em; font-weight: 700; margin-bottom: 8px; }
+  .cover h2 { font-size: 1.4em; font-weight: 300; opacity: 0.9; margin-bottom: 40px; }
+  .cover .meta { font-size: 0.95em; opacity: 0.8; line-height: 2; }
+  .cover .badge {
+    display: inline-block; margin-top: 32px;
+    border: 2px solid rgba(255,255,255,0.5); border-radius: 12px;
+    padding: 12px 28px; font-size: 0.95em; font-weight: 500;
+  }
+  .container { max-width: 800px; margin: 0 auto; padding: 40px 32px; }
+  h2 {
+    font-size: 1.5em; color: #0d9488; border-bottom: 3px solid #0d9488;
+    padding-bottom: 8px; margin: 40px 0 20px;
+  }
+  h3 { font-size: 1.15em; color: #1a202c; margin: 24px 0 12px; }
+  h4 { font-size: 1em; color: #2d3748; margin: 16px 0 8px; }
+  p { margin-bottom: 12px; text-align: justify; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    font-size: 0.92em;
+  }
+  th, td { border: 1px solid #e2e8f0; padding: 10px 14px; text-align: left; }
+  th { background: #f0fdfa; color: #0d9488; font-weight: 600; }
+  tr:nth-child(even) { background: #fafafa; }
+  blockquote {
+    border-left: 4px solid #0d9488; background: #f0fdfa;
+    padding: 14px 18px; margin: 16px 0; border-radius: 0 8px 8px 0;
+    font-size: 0.92em;
+  }
+  blockquote strong { color: #0d9488; }
+  .warning {
+    border-left-color: #f59e0b; background: #fffbeb;
+  }
+  .warning strong { color: #b45309; }
+  .important {
+    border-left-color: #3b82f6; background: #eff6ff;
+  }
+  .important strong { color: #1d4ed8; }
+  code {
+    background: #f1f5f9; padding: 2px 6px; border-radius: 4px;
+    font-size: 0.9em; color: #0d9488;
+  }
+  .formula {
+    text-align: center; padding: 16px; margin: 12px 0;
+    background: #f8fafc; border-radius: 8px;
+    font-family: 'Times New Roman', serif; font-size: 1.1em;
+    font-style: italic;
+  }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 6px; }
+  .ref-list { font-size: 0.88em; color: #4a5568; }
+  .ref-list li { margin-bottom: 8px; }
+  .footer-block {
+    text-align: center; margin-top: 60px; padding-top: 20px;
+    border-top: 2px solid #e2e8f0; color: #718096; font-size: 0.9em;
+  }
+  .print-btn {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #0d9488; color: white; border: none;
+    padding: 14px 28px; border-radius: 12px; font-size: 1em;
+    cursor: pointer; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+    z-index: 999;
+  }
+  .print-btn:hover { background: #0f766e; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">📄 列印 / 儲存 PDF</button>
+
+<!-- ===== 封面 ===== -->
+<div class="cover">
+  <h1>惠生檢測平台</h1>
+  <h2>AI 運動表現分析系統<br>循證醫學與合規性技術白皮書</h2>
+  <div class="meta">
+    <p>版本 1.0</p>
+    <p>發行日期：2026 年 3 月</p>
+    <p>惠生醫藥集團</p>
+    <p>KeiSei Holistic Pharmaceutical CO., LTD.</p>
+  </div>
+  <div class="badge">非醫療器材 ｜ 運動訓練輔助工具</div>
+</div>
+
+<!-- ===== 正文 ===== -->
+<div class="container">
+
+<h2>摘要</h2>
+<p>本白皮書說明「惠生檢測平台」中 AI 運動表現分析系統之技術原理、學理依據與合規定位。系統採用 Google MediaPipe 骨架辨識技術結合自主開發之生物力學引擎，針對長者地板滾球運動動作進行即時分析，產出個人化之運動訓練建議。</p>
+<blockquote class="important"><strong>重要聲明：</strong>本系統定位為「運動訓練輔助工具」，非屬醫療器材，所有分析結果與建議均不構成醫療診斷或處方。</blockquote>
+
+<!-- 一 -->
+<h2>一、系統定位與法規邊界</h2>
+
+<h3>1.1 產品分類</h3>
+<table>
+  <tr><th>項目</th><th>說明</th></tr>
+  <tr><td>產品類型</td><td>運動訓練輔助分析軟體</td></tr>
+  <tr><td>適用對象</td><td>社區長者運動訓練指導</td></tr>
+  <tr><td>使用場域</td><td>運動中心、社區據點、長照機構</td></tr>
+  <tr><td>操作人員</td><td>經授權之運動指導員及醫事人員</td></tr>
+  <tr><td>法規定位</td><td><strong>非屬醫療器材</strong>，不涉及疾病診斷或治療</td></tr>
+</table>
+
+<h3>1.2 合規聲明</h3>
+<p>本系統依據以下原則設計與運營：</p>
+<ul>
+  <li><strong>不進行醫療診斷</strong>：所有分析結果以「運動表現觀察」而非「疾病診斷」呈現</li>
+  <li><strong>不開立處方</strong>：所有建議以「訓練建議」呈現，非醫療處方</li>
+  <li><strong>不推薦藥物或營養補充品</strong>：系統不包含任何藥事相關建議</li>
+  <li><strong>明確免責聲明</strong>：報告中明確標示系統非醫療器材，建議如有健康疑慮應諮詢醫療專業人員</li>
+  <li><strong>符合個資法</strong>：所有數據經加密儲存，遵循最小權限原則與 Row-Level Security 策略</li>
+</ul>
+
+<!-- 二 -->
+<h2>二、ICOPE 評估模組 — 學理依據</h2>
+<p>本系統之 ICOPE 前後測模組完全遵循<strong>世界衛生組織 (WHO)</strong> 於 2019 年發布之《Integrated Care for Older People (ICOPE): Guidance on person-centred assessment and pathways in primary care》指引。</p>
+
+<h3>2.1 初評六大面向</h3>
+<table>
+  <tr><th>面向</th><th>篩檢方式</th><th>WHO ICOPE 依據</th></tr>
+  <tr><td>認知功能</td><td>簡易認知問答</td><td>WHO ICOPE Handbook, Ch.4</td></tr>
+  <tr><td>行動能力</td><td>步態觀察與椅子起立測試</td><td>WHO ICOPE Handbook, Ch.5</td></tr>
+  <tr><td>營養狀態</td><td>體重變化與食慾評估</td><td>WHO ICOPE Handbook, Ch.6</td></tr>
+  <tr><td>視力</td><td>簡易視力圖測試</td><td>WHO ICOPE Handbook, Ch.7</td></tr>
+  <tr><td>聽力</td><td>語音氣音測試</td><td>WHO ICOPE Handbook, Ch.7</td></tr>
+  <tr><td>憂鬱</td><td>兩週情緒問卷</td><td>WHO ICOPE Handbook, Ch.8</td></tr>
+</table>
+
+<h3>2.2 複評量表與臨床驗證</h3>
+<table>
+  <tr><th>量表</th><th>分數範圍</th><th>異常閾值</th><th>文獻出處</th></tr>
+  <tr><td>AD8</td><td>0-8</td><td>≥ 2 分</td><td>Galvin JE et al. (2005). <em>Neurology</em>, 65(4):559-564.</td></tr>
+  <tr><td>SPPB</td><td>0-12</td><td>≤ 8 分</td><td>Guralnik JM et al. (1994). <em>J Gerontol</em>, 49(2):M85-M94.</td></tr>
+  <tr><td>MNA-SF</td><td>0-14</td><td>≤ 11 分</td><td>Rubenstein LZ et al. (2001). <em>J Gerontol</em>, 56A(6):M366-M372.</td></tr>
+  <tr><td>GDS-15</td><td>0-15</td><td>≥ 5 分</td><td>Yesavage JA et al. (1982). <em>J Psychiatr Res</em>, 17(1):37-49.</td></tr>
+</table>
+
+<h3>2.3 追蹤與後測時程</h3>
+<ul>
+  <li><strong>追蹤</strong>：初評後 +1 個月（依據國民健康署公衛政策）</li>
+  <li><strong>後測窗口</strong>：初評後 +3 至 6 個月（依據 WHO ICOPE 建議之介入後評估週期）</li>
+</ul>
+<blockquote><strong>參考文獻：</strong>World Health Organization. (2019). <em>Integrated care for older people (ICOPE): Guidance on person-centred assessment and pathways in primary care</em>. WHO/FWC/ALC/19.1.</blockquote>
+
+<!-- 三 -->
+<h2>三、AI 動作分析模組 — 技術架構</h2>
+
+<h3>3.1 骨架辨識技術</h3>
+<table>
+  <tr><th>項目</th><th>技術</th></tr>
+  <tr><td>辨識引擎</td><td>Google MediaPipe Pose（BlazePose 模型）</td></tr>
+  <tr><td>關鍵點數量</td><td>33 個 3D 人體骨架端點</td></tr>
+  <tr><td>執行環境</td><td>純前端推論（WebGL / GPU 加速）</td></tr>
+  <tr><td>精確度</td><td>mAP 80.4%（COCO Keypoints 基準）</td></tr>
+</table>
+<blockquote><strong>參考文獻：</strong>Bazarevsky V et al. (2020). <em>BlazePose: On-device Real-time Body Pose tracking</em>. arXiv:2006.10204.<br>Lugaresi C et al. (2019). <em>MediaPipe: A Framework for Building Perception Pipelines</em>. arXiv:1906.08172.</blockquote>
+
+<h3>3.2 生物力學指標</h3>
+
+<h4>3.2.1 關節活動度 (Range of Motion, ROM)</h4>
+<p><strong>演算法</strong>：三維向量點積法 (3D Dot Product Method)</p>
+<div class="formula">θ = arccos( (BA⃗ · BC⃗) / (|BA⃗| · |BC⃗|) )</div>
+<ul>
+  <li><strong>量測關節</strong>：肩關節、肘關節、腕關節</li>
+  <li><strong>臨床參考值</strong>：肘關節正常 ROM 為 0°–150°</li>
+</ul>
+<blockquote><strong>參考文獻：</strong>Norkin CC, White DJ. (2016). <em>Measurement of Joint Motion</em> (5th ed.). F.A. Davis.<br>Boone DC, Azen SP. (1979). Normal range of motion of joints. <em>J Bone Joint Surg</em>, 61(5):756-759.</blockquote>
+
+<h4>3.2.2 軀幹穩定性 (Core Stability)</h4>
+<p><strong>演算法</strong>：中軸偏移角度分析 — 計算肩膀中點 (M<sub>shoulder</sub>) 與髋部中點 (M<sub>hip</sub>) 連線相對於垂直軸的偏移角度。</p>
+<div class="formula">
+  M<sub>shoulder</sub> = (P<sub>L_shoulder</sub> + P<sub>R_shoulder</sub>) / 2<br><br>
+  Δ = M<sub>shoulder</sub> − M<sub>hip</sub><br><br>
+  θ<sub>tilt</sub> = arctan( √(Δx² + Δz²) / |Δy| )
+</div>
+<ul>
+  <li><strong>系統參考值</strong>：≤ 10° 為穩定（工程經驗值）</li>
+  <li><strong>臨床意義</strong>：軀幹穩定性不足與跌倒風險顯著相關</li>
+</ul>
+<blockquote><strong>參考文獻：</strong>Granacher U et al. (2013). Trunk muscle strength for balance and fall prevention. <em>Sports Medicine</em>, 43(7):627-641.<br>Huxham FE et al. (2001). Theoretical considerations in balance assessment. <em>Australian J Physiotherapy</em>, 47(2):89-100.</blockquote>
+
+<h4>3.2.3 角速度分析 (Angular Velocity)</h4>
+<p><strong>演算法</strong>：逐幀計算關節角度，以幀間時間差取微分</p>
+<div class="formula">ω = Δθ / Δt (°/s)</div>
+<table>
+  <tr><th>範圍</th><th>意義</th></tr>
+  <tr><td>ω &gt; 300°/s</td><td>爆發力表現優秀</td></tr>
+  <tr><td>ω 50–300°/s</td><td>正常範圍</td></tr>
+  <tr><td>ω &lt; 50°/s</td><td>動作遲緩（需關注）</td></tr>
+</table>
+<blockquote><strong>參考文獻：</strong>Cuesta-Vargas AI et al. (2010). Inertial sensors for human motion analysis. <em>Phys Ther Rev</em>, 15(6):462-473.<br>Menegoni F et al. (2009). Kinematics of large body sway. <em>IEEE Trans Biomed Eng</em>, 56(4):960-968.</blockquote>
+
+<h4>3.2.4 震顫偵測 (Tremor Detection)</h4>
+<p><strong>演算法</strong>：零交叉法 (Zero-Crossing Method) — 計算角速度信號偏離均值的方向性變化次數，轉換為頻率。</p>
+<div class="formula">f<sub>tremor</sub> = N<sub>cross</sub> / (2 × T<sub>window</sub>)</div>
+<ul>
+  <li><strong>偵測頻率範圍</strong>：4–12 Hz</li>
+  <li><strong>臨床比對</strong>：帕金森氏症靜止性震顫 4–6 Hz；本態性震顫 5–12 Hz</li>
+</ul>
+<p><strong>嚴重度分級</strong>（系統內部分級，非臨床診斷）：</p>
+<table>
+  <tr><th>等級</th><th>零交叉次數</th><th>振幅</th></tr>
+  <tr><td>輕度</td><td>6–8</td><td>&lt; 5°</td></tr>
+  <tr><td>中度</td><td>8–12</td><td>5–15°</td></tr>
+  <tr><td>重度</td><td>&gt; 12</td><td>&gt; 15°</td></tr>
+</table>
+<blockquote class="warning"><strong>⚠ 注意：</strong>震顫偵測結果受環境光線、裝置性能、衣著遮擋及受測者配合度等因素影響。系統偵測到的不穩定訊號<strong>不等同於臨床震顫診斷</strong>，若日常生活中觀察到手部持續抖動，建議經神經內科醫師專業評估。</blockquote>
+<blockquote><strong>參考文獻：</strong>Deuschl G et al. (1998). Consensus statement on Tremor. <em>Movement Disorders</em>, 13(S3):2-23.<br>Elble RJ. (2009). Tremor: Clinical features and treatment. <em>Neurologic Clinics</em>, 27(3):679-695.<br>Hess CW, Pullman SL. (2012). Tremor: Clinical phenomenology. <em>Tremor and Other Hyperkinetic Movements</em>, 2:tre-02-65-417-1.</blockquote>
+
+<h4>3.2.5 代償動作辨識 (Compensation Detection)</h4>
+<table>
+  <tr><th>代償類型</th><th>偵測方式</th><th>生物力學意義</th></tr>
+  <tr><td>甩頭投擲 (Head Throw)</td><td>頭部前傾角度 &gt; 30°</td><td>上肢肌力不足之代償策略</td></tr>
+  <tr><td>側身傾斜 (Side Lean)</td><td>軀幹側向傾斜 &gt; 20°</td><td>核心穩定性不足</td></tr>
+  <tr><td>聳肩代償 (Shoulder Hike)</td><td>肩部不對稱上抬 &gt; 15°</td><td>肩關節活動受限之代償</td></tr>
+</table>
+<blockquote><strong>參考文獻：</strong>Levin MF et al. (2009). Motor recovery and compensation in stroke. <em>Neurorehab Neural Repair</em>, 23(4):313-319.<br>Cirstea MC, Levin MF. (2000). Compensatory strategies for reaching. <em>Brain</em>, 123(5):940-953.</blockquote>
+
+<!-- 四 -->
+<h2>四、AI 訓練建議引擎 — 評分與建議邏輯</h2>
+
+<h3>4.1 綜合評分模型</h3>
+<p>系統採用加權多維度評分模型，滿分 100 分：</p>
+<table>
+  <tr><th>維度</th><th>權重</th><th>評分依據</th></tr>
+  <tr><td>關節活動度 (ROM)</td><td>30%</td><td>≥160° 滿分；120°–160° 依比例</td></tr>
+  <tr><td>軀幹穩定度</td><td>25%</td><td>傾斜角 ≤8° 滿分；&gt;25° 最低分</td></tr>
+  <tr><td>穩定比例</td><td>20%</td><td>分析期間穩定幀佔比</td></tr>
+  <tr><td>安全指標（震顫+代償）</td><td>25%</td><td>偵測率越低得分越高</td></tr>
+</table>
+
+<h3>4.2 等級劃分</h3>
+<table>
+  <tr><th>等級</th><th>分數範圍</th><th>意義</th></tr>
+  <tr><td>優秀</td><td>≥ 85</td><td>各項指標表現良好</td></tr>
+  <tr><td>良好</td><td>65–84</td><td>部分指標可再強化</td></tr>
+  <tr><td>待改善</td><td>45–64</td><td>多項指標需改善</td></tr>
+  <tr><td>需加強</td><td>&lt; 45</td><td>建議從基礎動作訓練起</td></tr>
+</table>
+
+<h3>4.3 品質閘門</h3>
+<ul>
+  <li><strong>數據不足閘門</strong>：投擲次數 &lt; 3 次且平均 ROM 為 0 時，系統不做評估，回傳「資料不足」</li>
+  <li><strong>骨架可見性閘門</strong>：關鍵關節 visibility &lt; 0.5 時，該幀不計入統計</li>
+</ul>
+
+<!-- 五 -->
+<h2>五、數據安全與隱私保護</h2>
+<table>
+  <tr><th>安全措施</th><th>實作方式</th></tr>
+  <tr><td>資料加密</td><td>Supabase 預設 AES-256 加密儲存</td></tr>
+  <tr><td>傳輸加密</td><td>全站 HTTPS / TLS 1.3</td></tr>
+  <tr><td>存取控制</td><td>Row-Level Security (RLS) 策略</td></tr>
+  <tr><td>認證機制</td><td>OAuth 2.0（Google 帳號登入）</td></tr>
+  <tr><td>最小權限</td><td>指導員僅可存取自己負責的長者資料</td></tr>
+  <tr><td>操作紀錄</td><td>完整審計軌跡（activity_logs）</td></tr>
+</table>
+
+<!-- 六 -->
+<h2>六、系統限制與免責聲明</h2>
+
+<h3>6.1 已知限制</h3>
+<ol>
+  <li><strong>環境依賴</strong>：影像分析受光線、背景複雜度、裝置鏡頭品質影響</li>
+  <li><strong>衣著影響</strong>：寬鬆衣物可能遮擋關鍵骨架端點，降低辨識精確度</li>
+  <li><strong>單人限制</strong>：系統以單一受測者為分析目標，多人同時入鏡可能干擾結果</li>
+  <li><strong>非即時醫療</strong>：分析結果為運動訓練參考，不能替代專業醫療評估</li>
+  <li><strong>閾值來源</strong>：部分閾值（如軀幹穩定度 ≤10°）為工程經驗值，非臨床診斷標準</li>
+</ol>
+
+<h3>6.2 免責聲明</h3>
+<blockquote class="warning"><strong>免責聲明：</strong>本報告由 AI 系統根據即時影像骨架分析自動產生，屬於運動訓練參考資料，不構成任何醫療診斷或治療建議。量測結果受環境光線、裝置性能、衣著遮擋與受測者配合度影響。如有健康疑慮，請諮詢專業醫療人員。</blockquote>
+
+<!-- 七 -->
+<h2>七、參考文獻彙整</h2>
+<ol class="ref-list">
+  <li>World Health Organization. (2019). <em>Integrated care for older people (ICOPE)</em>. WHO/FWC/ALC/19.1.</li>
+  <li>Galvin JE et al. (2005). The AD8: A brief informant interview to detect dementia. <em>Neurology</em>, 65(4):559-564.</li>
+  <li>Guralnik JM et al. (1994). A short physical performance battery assessing lower extremity function. <em>J Gerontol</em>, 49(2):M85-M94.</li>
+  <li>Rubenstein LZ et al. (2001). Screening for undernutrition in geriatric practice: MNA-SF. <em>J Gerontol</em>, 56A(6):M366-M372.</li>
+  <li>Yesavage JA et al. (1982). Development and validation of a geriatric depression screening scale. <em>J Psychiatr Res</em>, 17(1):37-49.</li>
+  <li>Bazarevsky V et al. (2020). BlazePose: On-device real-time body pose tracking. <em>arXiv:2006.10204</em>.</li>
+  <li>Lugaresi C et al. (2019). MediaPipe: A framework for building perception pipelines. <em>arXiv:1906.08172</em>.</li>
+  <li>Norkin CC, White DJ. (2016). <em>Measurement of Joint Motion</em> (5th ed.). F.A. Davis.</li>
+  <li>Boone DC, Azen SP. (1979). Normal range of motion of joints. <em>J Bone Joint Surg</em>, 61(5):756-759.</li>
+  <li>Granacher U et al. (2013). Trunk muscle strength for balance and fall prevention. <em>Sports Med</em>, 43(7):627-641.</li>
+  <li>Cuesta-Vargas AI et al. (2010). Inertial sensors for human motion analysis. <em>Phys Ther Rev</em>, 15(6):462-473.</li>
+  <li>Deuschl G et al. (1998). Consensus statement on Tremor. <em>Movement Disorders</em>, 13(S3):2-23.</li>
+  <li>Elble RJ. (2009). Tremor: Clinical features and treatment. <em>Neurologic Clinics</em>, 27(3):679-695.</li>
+  <li>Hess CW, Pullman SL. (2012). Tremor: Clinical phenomenology. <em>Tremor and Other Hyperkinetic Movements</em>, 2:tre-02-65-417-1.</li>
+  <li>Levin MF et al. (2009). Motor recovery and compensation in stroke. <em>Neurorehab Neural Repair</em>, 23(4):313-319.</li>
+</ol>
+
+<div class="footer-block">
+  <p><strong>© 2026 惠生醫藥集團 版權所有</strong></p>
+  <p>KeiSei Holistic Pharmaceutical CO., LTD.</p>
+  <p>臺中市北區淡溝里臺灣大道二段340號10樓之1 ｜ 電話：04-23196710</p>
+</div>
+
+</div>
+</body>
+</html>
