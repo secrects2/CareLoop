@@ -25,20 +25,30 @@ type Status = 'loading' | 'checking-in' | 'success' | 'already' | 'error'
 
 function CheckinContent() {
     const searchParams = useSearchParams()
-    // Try query param first, then localStorage fallback (survives LINE Login redirect)
-    const eventId = searchParams.get('eventId') || 
-        (typeof window !== 'undefined' ? localStorage.getItem('checkin_event_id') : '') || ''
+    const queryEventId = searchParams.get('eventId') || ''
     const [status, setStatus] = useState<Status>('loading')
     const [result, setResult] = useState<CheckinResult | null>(null)
     const [errorMsg, setErrorMsg] = useState('')
+
+    // Save eventId to localStorage IMMEDIATELY on mount (before any LIFF operations)
+    useEffect(() => {
+        if (queryEventId) {
+            localStorage.setItem('checkin_event_id', queryEventId)
+        }
+    }, [queryEventId])
 
     const doCheckin = useCallback(async () => {
         try {
             setStatus('loading')
 
+            // Resolve eventId: query param > localStorage
+            const eventId = queryEventId || localStorage.getItem('checkin_event_id') || ''
             if (!eventId) {
                 throw new Error('缺少活動 ID')
             }
+
+            // Save to localStorage as backup
+            localStorage.setItem('checkin_event_id', eventId)
 
             // 1. Initialize LIFF
             if (CHECKIN_LIFF_ID) {
@@ -47,9 +57,8 @@ function CheckinContent() {
                 throw new Error('LIFF ID 未設定')
             }
 
-            // 2. If not logged in, save eventId and trigger LINE Login
+            // 2. If not logged in, trigger LINE Login
             if (!liff.isLoggedIn()) {
-                localStorage.setItem('checkin_event_id', eventId)
                 liff.login({
                     redirectUri: window.location.href,
                 })
@@ -78,6 +87,9 @@ function CheckinContent() {
                 throw new Error(data.error || '簽到失敗')
             }
 
+            // Clear localStorage after successful checkin
+            localStorage.removeItem('checkin_event_id')
+
             setResult(data)
             setStatus(data.alreadyCheckedIn ? 'already' : 'success')
         } catch (err: any) {
@@ -85,7 +97,7 @@ function CheckinContent() {
             setErrorMsg(err.message || '簽到過程發生錯誤')
             setStatus('error')
         }
-    }, [eventId])
+    }, [queryEventId])
 
     useEffect(() => {
         doCheckin()

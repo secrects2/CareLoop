@@ -23,14 +23,30 @@ interface CheckinResult {
 type Status = 'loading' | 'checking-in' | 'success' | 'already' | 'error'
 
 export default function CheckinPage({ params }: { params: Promise<{ eventId: string }> }) {
-    const { eventId } = use(params)
+    const { eventId: pathEventId } = use(params)
     const [status, setStatus] = useState<Status>('loading')
     const [result, setResult] = useState<CheckinResult | null>(null)
     const [errorMsg, setErrorMsg] = useState('')
 
+    // Save eventId to localStorage IMMEDIATELY on mount (before any LIFF operations)
+    useEffect(() => {
+        if (pathEventId) {
+            localStorage.setItem('checkin_event_id', pathEventId)
+        }
+    }, [pathEventId])
+
     const doCheckin = useCallback(async () => {
         try {
             setStatus('loading')
+
+            // Resolve eventId: path param > localStorage
+            const eventId = pathEventId || localStorage.getItem('checkin_event_id') || ''
+            if (!eventId) {
+                throw new Error('缺少活動 ID')
+            }
+
+            // Save to localStorage as backup
+            localStorage.setItem('checkin_event_id', eventId)
 
             // 1. Initialize LIFF
             if (CHECKIN_LIFF_ID) {
@@ -39,14 +55,12 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                 throw new Error('LIFF ID 未設定')
             }
 
-            // 2. If not logged in, save eventId and trigger LINE Login
+            // 2. If not logged in, trigger LINE Login
             if (!liff.isLoggedIn()) {
-                // Save eventId to localStorage so it survives the login redirect
-                localStorage.setItem('checkin_event_id', eventId)
                 liff.login({
                     redirectUri: window.location.href,
                 })
-                return // Page will redirect, stop here
+                return
             }
 
             // 3. Get LINE Profile
@@ -71,6 +85,9 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                 throw new Error(data.error || '簽到失敗')
             }
 
+            // Clear localStorage after successful checkin
+            localStorage.removeItem('checkin_event_id')
+
             setResult(data)
             setStatus(data.alreadyCheckedIn ? 'already' : 'success')
         } catch (err: any) {
@@ -78,7 +95,7 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
             setErrorMsg(err.message || '簽到過程發生錯誤')
             setStatus('error')
         }
-    }, [eventId])
+    }, [pathEventId])
 
     useEffect(() => {
         doCheckin()
@@ -128,7 +145,6 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                 {/* Success State */}
                 {status === 'success' && result && (
                     <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-                        {/* Success header */}
                         <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-8 text-center text-white">
                             <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
                                 <CheckCircle className="w-10 h-10" />
@@ -137,7 +153,6 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                             <p className="text-emerald-100 text-sm">您已成功完成簽到</p>
                         </div>
 
-                        {/* Event details */}
                         <div className="p-6 space-y-4">
                             <div className="text-center mb-2">
                                 <h3 className="text-lg font-bold text-slate-800">{result.event.title}</h3>
@@ -239,8 +254,7 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                         <p className="text-sm text-slate-500 mb-6">{errorMsg}</p>
                         <button
                             onClick={() => doCheckin()}
-                            className="px-6 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 transition-all"
-                            style={{ background: 'var(--gradient-primary)' }}
+                            className="px-6 py-2.5 rounded-xl text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all"
                         >
                             重試
                         </button>
