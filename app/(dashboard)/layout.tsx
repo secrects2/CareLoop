@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
-import { LayoutDashboard, Users, ClipboardList, Target, FlaskConical, ShieldCheck, LogOut, BookOpen, CalendarCheck } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, Target, FlaskConical, ShieldCheck, LogOut, BookOpen, CalendarCheck, Footprints } from 'lucide-react'
 
 interface Profile {
     id: string
@@ -63,6 +63,7 @@ export default function DashboardLayout({
         { href: '/analysis', label: '地板滾球分析', icon: Target, color: 'text-orange-500' },
         { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical, color: 'text-pink-500' },
         { href: '/events', label: '活動簽到', icon: CalendarCheck, color: 'text-teal-500' },
+        { href: '/gait-analysis', label: '3D 步態分析', icon: Footprints, color: 'text-cyan-500' },
         { href: '/guide', label: '操作說明', icon: BookOpen, color: 'text-amber-500' },
         ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: ShieldCheck, color: 'text-red-500' }] : []),
     ]

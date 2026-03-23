@@ -72,6 +72,7 @@ export const config = {
         '/icope/:path*',
         '/ai-lab/:path*',
         '/events/:path*',
+        '/gait-analysis/:path*',
         '/privacy',
         '/terms',
         '/contact',
