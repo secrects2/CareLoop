@@ -13,11 +13,7 @@ export default function GaitAnalysisPage() {
 
     const handleStart = () => {
         setStarting(true)
-        // TODO: Phase 1 — navigate to the actual gait analysis camera page
-        setTimeout(() => {
-            setStarting(false)
-            // router.push('/gait-analysis/session')
-        }, 1500)
+        router.push('/gait-analysis/session')
     }
 
     return (
