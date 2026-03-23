@@ -57,14 +57,14 @@ export default function DashboardLayout({
     }
 
     const navItems = [
-        { href: '/dashboard', label: '儀表板', icon: LayoutDashboard },
-        { href: '/elders', label: '長輩管理', icon: Users },
-        { href: '/icope', label: 'ICOPE 評估', icon: ClipboardList },
-        { href: '/analysis', label: '地板滾球分析', icon: Target },
-        { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical },
-        { href: '/events', label: '活動簽到', icon: CalendarCheck },
-        { href: '/guide', label: '操作說明', icon: BookOpen },
-        ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: ShieldCheck }] : []),
+        { href: '/dashboard', label: '儀表板', icon: LayoutDashboard, color: 'text-blue-500' },
+        { href: '/elders', label: '長輩管理', icon: Users, color: 'text-violet-500' },
+        { href: '/icope', label: 'ICOPE 評估', icon: ClipboardList, color: 'text-emerald-500' },
+        { href: '/analysis', label: '地板滾球分析', icon: Target, color: 'text-orange-500' },
+        { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical, color: 'text-pink-500' },
+        { href: '/events', label: '活動簽到', icon: CalendarCheck, color: 'text-teal-500' },
+        { href: '/guide', label: '操作說明', icon: BookOpen, color: 'text-amber-500' },
+        ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: ShieldCheck, color: 'text-red-500' }] : []),
     ]
 
     if (!user) {
@@ -109,7 +109,7 @@ export default function DashboardLayout({
                             onClick={() => setSidebarOpen(false)}
                             className={`sidebar-item ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
                         >
-                            <item.icon className="w-5 h-5" />
+                            <item.icon className={`w-5 h-5 ${item.color}`} />
                             <span>{item.label}</span>
                         </Link>
                     ))}
