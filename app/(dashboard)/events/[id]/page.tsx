@@ -131,11 +131,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         return `${h}:${m}`
     }
 
-    // QR Code URL: uses LIFF path format so eventId survives redirects
-    // https://liff.line.me/{LIFF_ID}/{eventId} → endpoint: /checkin/{eventId}
-    const qrUrl = CHECKIN_LIFF_ID
-        ? `https://liff.line.me/${CHECKIN_LIFF_ID}/${id}`
-        : `${typeof window !== 'undefined' ? window.location.origin : ''}/checkin/${id}`
+    // QR Code URL: point directly to our app so the page loads first
+    // (liff.line.me redirects through LINE's servers and loses the eventId)
+    const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://epa-tool.vercel.app'
+    const qrUrl = `${appOrigin}/checkin/${id}`
 
     if (loading) {
         return (
