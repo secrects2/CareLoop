@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
-import { LayoutDashboard, Users, ClipboardList, Target, FlaskConical, ShieldCheck, LogOut, BookOpen, CalendarCheck, Footprints } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, Target, FlaskConical, ShieldCheck, LogOut, BookOpen, CalendarCheck, Footprints, ChevronDown, Activity } from 'lucide-react'
 
 interface Profile {
     id: string
@@ -24,8 +24,16 @@ export default function DashboardLayout({
     const [user, setUser] = useState<User | null>(null)
     const [profile, setProfile] = useState<Profile | null>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [analysisOpen, setAnalysisOpen] = useState(false)
     const router = useRouter()
     const pathname = usePathname()
+
+    // 自動展開分析群組（如果當前頁面在分析群組內）
+    useEffect(() => {
+        if (pathname.startsWith('/analysis') || pathname.startsWith('/gait-analysis') || pathname.startsWith('/ai-lab')) {
+            setAnalysisOpen(true)
+        }
+    }, [pathname])
 
     useEffect(() => {
         const supabase = createClient()
@@ -56,17 +64,28 @@ export default function DashboardLayout({
         router.push('/login')
     }
 
-    const navItems = [
+    // 主導航項目
+    const mainNavItems = [
         { href: '/dashboard', label: '儀表板', icon: LayoutDashboard, color: 'text-blue-500' },
         { href: '/elders', label: '長輩管理', icon: Users, color: 'text-violet-500' },
-        { href: '/icope', label: 'ICOPE 評估', icon: ClipboardList, color: 'text-emerald-500' },
-        { href: '/analysis', label: '地板滾球分析', icon: Target, color: 'text-orange-500' },
-        { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical, color: 'text-pink-500' },
         { href: '/events', label: '活動簽到', icon: CalendarCheck, color: 'text-teal-500' },
+    ]
+
+    // 分析功能群組
+    const analysisNavItems = [
+        { href: '/analysis', label: '地板滾球分析', icon: Target, color: 'text-orange-500' },
         { href: '/gait-analysis', label: '3D 步態分析', icon: Footprints, color: 'text-cyan-500' },
+        { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical, color: 'text-pink-500' },
+    ]
+
+    // 底部導航
+    const bottomNavItems = [
+        { href: '/icope', label: 'ICOPE 評估', icon: ClipboardList, color: 'text-emerald-500' },
         { href: '/guide', label: '操作說明', icon: BookOpen, color: 'text-amber-500' },
         ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: ShieldCheck, color: 'text-red-500' }] : []),
     ]
+
+    const isAnalysisActive = pathname.startsWith('/analysis') || pathname.startsWith('/gait-analysis') || pathname.startsWith('/ai-lab')
 
     if (!user) {
         return (
@@ -96,14 +115,62 @@ export default function DashboardLayout({
                         </div>
                         <div>
                             <h1 className="font-bold text-slate-800 text-sm leading-tight">惠生檢測平台</h1>
-                            <p className="text-xs text-slate-500">ICOPE & 地板滾球</p>
+                            <p className="text-xs text-slate-500">ICOPE & AI 分析</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex-1 p-4 space-y-1">
-                    {navItems.map((item) => (
+                    {/* Main nav */}
+                    {mainNavItems.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`sidebar-item ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
+                        >
+                            <item.icon className={`w-5 h-5 ${item.color}`} />
+                            <span>{item.label}</span>
+                        </Link>
+                    ))}
+
+                    {/* Analysis group */}
+                    <div className="pt-1">
+                        <button
+                            onClick={() => setAnalysisOpen(!analysisOpen)}
+                            className={`sidebar-item w-full justify-between ${isAnalysisActive ? 'active' : ''}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Activity className="w-5 h-5 text-indigo-500" />
+                                <span>分析功能</span>
+                            </div>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${analysisOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-200 ${analysisOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className="ml-3 pl-3 border-l-2 border-slate-200 space-y-0.5 mt-1">
+                                {analysisNavItems.map((item) => (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        onClick={() => setSidebarOpen(false)}
+                                        className={`sidebar-item text-sm ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
+                                    >
+                                        <item.icon className={`w-4 h-4 ${item.color}`} />
+                                        <span>{item.label}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="pt-2 pb-1">
+                        <div className="border-t border-slate-100" />
+                    </div>
+
+                    {/* Bottom nav */}
+                    {bottomNavItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
