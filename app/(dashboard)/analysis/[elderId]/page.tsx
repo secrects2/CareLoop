@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { BiomechanicsEngine, BiomechanicsMetrics, LANDMARKS } from '@/lib/analysis/biomechanics-engine'
 import { logActivity } from '@/lib/activity-log'
+import { CheckCircle2, AlertTriangle, Lock } from 'lucide-react'
 
 type TestType = 'pre' | 'post' | 'practice'
 
@@ -17,6 +18,10 @@ export default function AnalysisPage() {
     const [elderName, setElderName] = useState('')
     const [testType, setTestType] = useState<TestType>('practice')
     const [isAnalyzing, setIsAnalyzing] = useState(false)
+    // 前後測狀態自動偵測
+    const [hasPreTest, setHasPreTest] = useState<boolean | null>(null)
+    const [hasPostTest, setHasPostTest] = useState<boolean | null>(null)
+    const [checkingStatus, setCheckingStatus] = useState(true)
     const [metrics, setMetrics] = useState<BiomechanicsMetrics | null>(null)
     const [throwMarks, setThrowMarks] = useState<BiomechanicsMetrics[]>([])
     const [sessionStart, setSessionStart] = useState<number>(0)
@@ -42,6 +47,29 @@ export default function AnalysisPage() {
             if (data) setElderName(data.name)
         }
         fetchElder()
+    }, [elderId])
+
+    // 自動偵測前後測完成狀態
+    useEffect(() => {
+        const checkTestStatus = async () => {
+            setCheckingStatus(true)
+            const supabase = createClient()
+            const { data: sessions } = await supabase
+                .from('analysis_sessions')
+                .select('test_type')
+                .eq('elder_id', elderId)
+
+            const hasPre = sessions?.some(s => s.test_type === 'pre') || false
+            const hasPost = sessions?.some(s => s.test_type === 'post') || false
+            setHasPreTest(hasPre)
+            setHasPostTest(hasPost)
+            // 自動建議正確的測試模式
+            if (!hasPre) setTestType('pre')
+            else if (!hasPost) setTestType('post')
+            else setTestType('practice')
+            setCheckingStatus(false)
+        }
+        checkTestStatus()
     }, [elderId])
 
     // 初始化分析引擎
@@ -289,30 +317,138 @@ export default function AnalysisPage() {
     return (
         <div className="space-y-4">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <button onClick={() => router.push(`/elders/${elderId}`)} className="text-slate-400 hover:text-white transition-colors text-sm">
-                        ← 返回
-                    </button>
-                    <h1 className="text-xl font-bold text-white">🤖 AI 分析 - {elderName}</h1>
-                </div>
-                {!isAnalyzing && (
-                    <div className="flex items-center gap-3">
-                        <select
-                            value={testType}
-                            onChange={e => setTestType(e.target.value as TestType)}
-                            className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-white text-sm focus:border-primary-500 focus:outline-none"
+            <div className="flex items-center gap-3">
+                <button onClick={() => router.push(`/elders/${elderId}`)} className="text-slate-400 hover:text-slate-700 transition-colors text-sm">
+                    ← 返回
+                </button>
+                <h1 className="text-xl font-bold text-slate-800">🤖 AI 分析 - {elderName}</h1>
+            </div>
+
+            {/* 前後測模式選擇 — 大型卡片 */}
+            {!isAnalyzing && (
+                <div className="glass-card p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-slate-800">🎯 選擇測試模式</h2>
+                        {checkingStatus && (
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <div className="w-3 h-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                                偵測中...
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 狀態提示橫幅 */}
+                    {!checkingStatus && hasPreTest !== null && (
+                        <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${
+                            hasPreTest && hasPostTest
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : hasPreTest
+                                    ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                            {hasPreTest && hasPostTest ? (
+                                <>
+                                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                    <span>此長輩<strong>前後測皆已完成</strong>，可進行練習或重新測試。</span>
+                                </>
+                            ) : hasPreTest ? (
+                                <>
+                                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                                    <span>前測已完成！建議進行<strong>後測</strong>。</span>
+                                </>
+                            ) : (
+                                <>
+                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                    <span>此長輩<strong>尚未前測</strong>，請先進行前測。</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 三張選擇卡片 */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {/* 前測 */}
+                        <button
+                            onClick={() => setTestType('pre')}
+                            disabled={checkingStatus}
+                            className={`relative p-4 rounded-2xl border-2 transition-all text-center ${
+                                testType === 'pre'
+                                    ? 'border-amber-400 bg-amber-50 shadow-lg shadow-amber-100'
+                                    : 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/50'
+                            }`}
                         >
-                            <option value="practice" className="bg-slate-800 text-white">練習</option>
-                            <option value="pre" className="bg-slate-800 text-white">前測</option>
-                            <option value="post" className="bg-slate-800 text-white">後測</option>
-                        </select>
-                        <button onClick={startAnalysis} className="btn-accent text-sm">
-                            🎬 開始分析
+                            <span className="text-3xl block mb-2">📝</span>
+                            <p className="font-bold text-slate-800 text-sm">前測</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Pre-Test</p>
+                            {!checkingStatus && hasPreTest && (
+                                <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    已完成
+                                </div>
+                            )}
+                        </button>
+
+                        {/* 後測 */}
+                        <button
+                            onClick={() => hasPreTest && setTestType('post')}
+                            disabled={checkingStatus || !hasPreTest}
+                            className={`relative p-4 rounded-2xl border-2 transition-all text-center ${
+                                !hasPreTest
+                                    ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
+                                    : testType === 'post'
+                                        ? 'border-emerald-400 bg-emerald-50 shadow-lg shadow-emerald-100'
+                                        : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50'
+                            }`}
+                        >
+                            <span className="text-3xl block mb-2">📊</span>
+                            <p className="font-bold text-slate-800 text-sm">後測</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Post-Test</p>
+                            {!checkingStatus && !hasPreTest && (
+                                <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
+                                    <Lock className="w-3 h-3" />
+                                    需先前測
+                                </div>
+                            )}
+                            {!checkingStatus && hasPreTest && hasPostTest && (
+                                <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    已完成
+                                </div>
+                            )}
+                        </button>
+
+                        {/* 練習 */}
+                        <button
+                            onClick={() => setTestType('practice')}
+                            disabled={checkingStatus}
+                            className={`relative p-4 rounded-2xl border-2 transition-all text-center ${
+                                testType === 'practice'
+                                    ? 'border-slate-400 bg-slate-50 shadow-lg shadow-slate-100'
+                                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
+                            }`}
+                        >
+                            <span className="text-3xl block mb-2">🏋️</span>
+                            <p className="font-bold text-slate-800 text-sm">練習</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Practice</p>
                         </button>
                     </div>
-                )}
-            </div>
+
+                    {/* 開始按鈕 */}
+                    <button
+                        onClick={startAnalysis}
+                        disabled={checkingStatus}
+                        className={`w-full py-4 rounded-xl font-bold text-white text-base transition-all disabled:opacity-30 ${
+                            testType === 'pre'
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-200'
+                                : testType === 'post'
+                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 shadow-lg shadow-emerald-200'
+                                    : 'bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 shadow-lg shadow-slate-200'
+                        }`}
+                    >
+                        🎬 開始{testType === 'pre' ? '前測' : testType === 'post' ? '後測' : '練習'}分析
+                    </button>
+                </div>
+            )}
 
             {/* Video + Canvas */}
             <div className="relative glass-card overflow-hidden" style={{ minHeight: '45vh' }}>

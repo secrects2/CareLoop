@@ -156,6 +156,9 @@ export default function BocciaCam({
     const lastStableRef = useRef<boolean>(false)
     const startTimeRef = useRef<number>(Date.now())
 
+    // Feature: 即時訓練計時器
+    const [elapsedTime, setElapsedTime] = useState(0)
+
     // Phase 2: 生物力学引擎
     const engineRef = useRef<BiomechanicsEngine>(new BiomechanicsEngine())
 
@@ -203,6 +206,9 @@ export default function BocciaCam({
 
     // Patent "The Brain" Rules - Diagnostic Message
     const [diagnosticMsg, setDiagnosticMsg] = useState<{ text: string, color: string } | null>(null)
+
+    // Feature: 全域診斷色框邊框顏色
+    const [borderColor, setBorderColor] = useState<string>('ring-blue-500/60')
 
     const [cameraReady, setCameraReady] = useState(false)
     const [poseLoaded, setPoseLoaded] = useState(false)
@@ -322,11 +328,13 @@ export default function BocciaCam({
         // --- PATENT LOGIC: "The Brain" Diagnostic Rules ---
         let diagText = null
         let diagColor = 'text-muted-foreground'
+        let newBorderColor = 'ring-blue-500/60' // 預設藍色
 
         // 偵測到真實出手瞬間！(最高優先級顯示)
         if (bio.isReleaseFrame) {
             diagText = "🎉 成功投出！(Release Point Detected)"
             diagColor = "text-yellow-400"
+            newBorderColor = 'ring-yellow-400/80'
 
             // ─── 自動出手檢測已停用（混合方案：改用手動標記 + Session 平均值）───
             // 保留 isReleaseFrame 作為 HUD 提示，但不再觸發自動儲存
@@ -389,23 +397,28 @@ export default function BocciaCam({
         else if (!isTrunkStable) {
             diagText = `⚠️ 警告：身體明顯傾斜 (>15°，目前 ${Math.round(trunkTilt)}°)`
             diagColor = "text-red-500"
+            newBorderColor = 'ring-red-500/80'
         }
         // Rule 2: Spasticity/Tone Indicator
         else if (!isArmExtended) {
             diagText = `ℹ️ 提示：手臂未完全伸展 (目前 ${Math.round(elbowROM)}°)`
             diagColor = "text-orange-400"
+            newBorderColor = 'ring-orange-400/70'
         }
         // Rule 3: Performance/Power (Good Shot)
         else if (isArmExtended && isTrunkStable && velocity > 50) {
             diagText = "✅ 優秀：動作穩定且具發力速度！"
             diagColor = "text-green-400"
+            newBorderColor = 'ring-green-400/70'
         }
         else if (isArmExtended && isTrunkStable) {
             diagText = "🔵 動作穩定，準備投球..."
             diagColor = "text-blue-400"
+            newBorderColor = 'ring-blue-500/60'
         }
 
         setDiagnosticMsg(diagText ? { text: diagText, color: diagColor } : null)
+        setBorderColor(newBorderColor)
         // --------------------------------------------------
 
         // Record history
@@ -686,6 +699,28 @@ export default function BocciaCam({
         }
     }, [processResults])
 
+    // Feature: 即時訓練計時器 interval
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000))
+        }, 1000)
+        return () => clearInterval(timer)
+    }, [])
+
+    // Feature: 即時穩定比率（衍生值）
+    const liveStableRatio = React.useMemo(() => {
+        const h = metricsHistoryRef.current
+        if (h.length === 0) return 0
+        return Math.round((h.filter(f => f.rom >= 160 && f.tilt <= 15).length / h.length) * 100)
+    }, [elapsedTime]) // 每秒隨 elapsedTime 重算
+
+    // Feature: 計時器格式化 MM:SS
+    const formattedTime = React.useMemo(() => {
+        const m = Math.floor(elapsedTime / 60).toString().padStart(2, '0')
+        const s = (elapsedTime % 60).toString().padStart(2, '0')
+        return `${m}:${s}`
+    }, [elapsedTime])
+
     // 後鏡頭設定
     const videoConstraints = React.useMemo(() => ({
         facingMode: 'environment'
@@ -703,9 +738,28 @@ export default function BocciaCam({
     }
 
     return (
-        <div className={`relative bg-black overflow-hidden flex flex-col ${className}`}>
+        <div className={`relative bg-black overflow-hidden flex flex-col ring-4 ${borderColor} transition-all duration-300 ${className}`}>
             {/* Top Bar - Transparent Overlay */}
-            <div className={`absolute top-0 left-0 right-0 z-20 p-4 flex justify-end items-start bg-gradient-to-b from-black/80 to-transparent pointer-events-none`}>
+            <div className={`absolute top-0 left-0 right-0 z-20 p-4 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent pointer-events-none`}>
+                {/* 即時訓練計時器 + 投球次數 + 穩定比率 */}
+                <div className="flex flex-col gap-1.5">
+                    <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
+                        <span className="text-white/60 text-xs">⏱</span>
+                        <span className="text-white font-mono text-lg font-bold tracking-wider">{formattedTime}</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                        <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1.5">
+                            <span className="text-amber-400 text-xs">📌</span>
+                            <span className="text-white font-mono text-sm font-bold">{throwMarkCount}</span>
+                            <span className="text-white/40 text-[10px]">球</span>
+                        </div>
+                        <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1.5">
+                            <span className="text-green-400 text-xs">✅</span>
+                            <span className="text-white font-mono text-sm font-bold">{liveStableRatio}%</span>
+                            <span className="text-white/40 text-[10px]">穩定</span>
+                        </div>
+                    </div>
+                </div>
                 {/* Team Badge - Move to right */}
                 <div className={`px-3 py-1 bg-black/50 backdrop-blur rounded-full border border-white/10 flex items-center gap-2`}>
                     <div className={`w-2 h-2 rounded-full ${side === 'red' ? 'bg-red-500' : 'bg-primary/100'}`} />
@@ -768,6 +822,18 @@ export default function BocciaCam({
                         準備投球
                     </div>
                 )}
+
+                {/* 🔴 安全警告全寬脈衝橫幅 — 軀幹傾斜 >15° */}
+                {!metrics.isTrunkStable && metrics.trunkStability !== null && (
+                    <div className="absolute bottom-0 left-0 right-0 z-30 animate-pulse">
+                        <div className="bg-red-600/95 backdrop-blur-sm border-t-2 border-red-400 py-3 px-4 flex items-center justify-center gap-3 shadow-lg shadow-red-900/50">
+                            <span className="text-2xl">⚠️</span>
+                            <p className="text-white font-extrabold text-base">
+                                安全警告：軀幹傾斜 {metrics.trunkStability}°（超過 15° 安全閾值）
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Metrics Dashboard */}
@@ -789,23 +855,23 @@ export default function BocciaCam({
                     </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                    <div className={`rounded-xl p-2 text-center min-w-0 ${metrics.isArmExtended ? sideColors.bg : 'bg-red-900/50'}`}>
-                        <p className="text-[10px] text-muted-foreground mb-0.5 truncate">肘部 ROM</p>
-                        <p className={`text-xl font-extrabold ${metrics.isArmExtended ? sideColors.text : 'text-red-400'}`}>
+                    <div className={`rounded-xl p-3 text-center min-w-0 ${metrics.isArmExtended ? sideColors.bg : 'bg-red-900/50'}`}>
+                        <p className="text-xs text-muted-foreground mb-1 truncate">肘部 ROM</p>
+                        <p className={`text-4xl font-extrabold ${metrics.isArmExtended ? sideColors.text : 'text-red-400'}`}>
                             {metrics.elbowROM !== null ? `${metrics.elbowROM}°` : '--'}
                         </p>
                     </div>
 
-                    <div className={`rounded-xl p-2 text-center min-w-0 ${metrics.isTrunkStable ? sideColors.bg : 'bg-red-900/50'}`}>
-                        <p className="text-[10px] text-muted-foreground mb-0.5 truncate">軀幹傾斜</p>
-                        <p className={`text-xl font-extrabold ${metrics.isTrunkStable ? sideColors.text : 'text-red-400'}`}>
+                    <div className={`rounded-xl p-3 text-center min-w-0 ${metrics.isTrunkStable ? sideColors.bg : 'bg-red-900/50'}`}>
+                        <p className="text-xs text-muted-foreground mb-1 truncate">軀幹傾斜</p>
+                        <p className={`text-4xl font-extrabold ${metrics.isTrunkStable ? sideColors.text : 'text-red-400'}`}>
                             {metrics.trunkStability !== null ? `${metrics.trunkStability}°` : '--'}
                         </p>
                     </div>
 
-                    <div className="rounded-xl p-2 text-center min-w-0 bg-gray-700/50">
-                        <p className="text-[10px] text-muted-foreground mb-0.5 truncate">出手速度</p>
-                        <p className="text-xl font-extrabold text-emerald-400 truncate">
+                    <div className="rounded-xl p-3 text-center min-w-0 bg-gray-700/50">
+                        <p className="text-xs text-muted-foreground mb-1 truncate">出手速度</p>
+                        <p className="text-4xl font-extrabold text-emerald-400 truncate">
                             {metrics.velocity ? metrics.velocity.toFixed(2) : '--'}
                         </p>
                     </div>
@@ -886,7 +952,10 @@ export default function BocciaCam({
                 {/* 無人畫面提示（一旦偵測到過人體就不再顯示） */}
                 {!metrics.subjectLocked && !hasEverLockedRef.current && (
                     <div className="mb-2 py-2 px-4 rounded-xl bg-yellow-600/30 border border-yellow-500/50 text-yellow-300 text-sm font-bold text-center animate-pulse">
-                        👤 等待長輩就位... (偵測到人體後自動開始)
+                        {poseLoaded
+                            ? '⚠️ 找不到人員，請立即調整距離或光源'
+                            : '👤 等待長輩就位... (偵測到人體後自動開始)'
+                        }
                     </div>
                 )}
 

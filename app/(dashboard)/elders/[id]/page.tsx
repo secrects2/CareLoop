@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { logActivity } from '@/lib/activity-log'
 import AnalysisReport from '@/components/analysis/AnalysisReport'
 import { type AnalysisMetrics } from '@/lib/analysis/ai-prescription'
+import { CheckCircle2, Circle, ArrowRight } from 'lucide-react'
 
 interface Elder {
     id: string
@@ -45,6 +46,12 @@ export default function ElderDetailPage() {
     const [exporting, setExporting] = useState(false)
     const [reportSession, setReportSession] = useState<Session | null>(null)
 
+    // ICOPE + Boccia 前後測進度
+    const [icopeInitialDate, setIcopeInitialDate] = useState<string | null>(null)
+    const [icopePostDate, setIcopePostDate] = useState<string | null>(null)
+    const [bocciaPreDate, setBocciaPreDate] = useState<string | null>(null)
+    const [bocciaPostDate, setBocciaPostDate] = useState<string | null>(null)
+
     useEffect(() => {
         const fetchData = async () => {
             const supabase = createClient()
@@ -57,13 +64,43 @@ export default function ElderDetailPage() {
 
             if (elderData) setElder(elderData)
 
+            // Boccia sessions
             const { data: sessionData } = await supabase
                 .from('analysis_sessions')
                 .select('*')
                 .eq('elder_id', elderId)
                 .order('created_at', { ascending: false })
 
-            if (sessionData) setSessions(sessionData)
+            if (sessionData) {
+                setSessions(sessionData)
+                const pre = sessionData.find(s => s.test_type === 'pre')
+                const post = sessionData.find(s => s.test_type === 'post')
+                if (pre) setBocciaPreDate(new Date(pre.created_at).toLocaleDateString('zh-TW'))
+                if (post) setBocciaPostDate(new Date(post.created_at).toLocaleDateString('zh-TW'))
+            }
+
+            // ICOPE assessments (cross-check by name + birth_date)
+            if (elderData) {
+                let pQuery = supabase.from('patients').select('id').eq('name', elderData.name)
+                if (elderData.birth_date) pQuery = pQuery.eq('birth_date', elderData.birth_date)
+                const { data: patients } = await pQuery
+
+                if (patients && patients.length > 0) {
+                    const { data: assessments } = await supabase
+                        .from('assessments')
+                        .select('stage, assessed_at')
+                        .in('patient_id', patients.map(p => p.id))
+                        .order('assessed_at', { ascending: false })
+
+                    if (assessments) {
+                        const initial = assessments.find(a => a.stage === 'initial')
+                        const post = assessments.find(a => a.stage === 'post')
+                        if (initial) setIcopeInitialDate(new Date(initial.assessed_at).toLocaleDateString('zh-TW'))
+                        if (post) setIcopePostDate(new Date(post.assessed_at).toLocaleDateString('zh-TW'))
+                    }
+                }
+            }
+
             setLoading(false)
         }
 
@@ -170,6 +207,113 @@ export default function ElderDetailPage() {
                     </button>
                     <button onClick={handleDeleteElder} className="px-4 py-2.5 rounded-xl text-sm text-red-600 border border-red-200 hover:bg-red-500/10 transition-colors">
                         🗑 刪除
+                    </button>
+                </div>
+            </div>
+
+            {/* 📋 統一前後測進度追蹤器 */}
+            <div className="glass-card p-6 space-y-5">
+                <h2 className="text-lg font-bold text-slate-800">📋 前後測進度</h2>
+
+                {/* ICOPE 進度 */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-700">📋 ICOPE 評估</span>
+                    </div>
+                    <div className="flex items-center gap-3 pl-1">
+                        {/* 初評 */}
+                        <div className="flex items-center gap-2">
+                            {icopeInitialDate ? (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            ) : (
+                                <Circle className="w-5 h-5 text-slate-300" />
+                            )}
+                            <div>
+                                <p className="text-sm font-medium text-slate-800">初評</p>
+                                <p className="text-[10px] text-slate-500">{icopeInitialDate || '尚未進行'}</p>
+                            </div>
+                        </div>
+                        {/* 連接線 */}
+                        <div className={`flex-1 h-0.5 rounded-full ${icopeInitialDate ? 'bg-emerald-300' : 'bg-slate-200'}`} />
+                        {/* 後測 */}
+                        <div className="flex items-center gap-2">
+                            {icopePostDate ? (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            ) : (
+                                <Circle className="w-5 h-5 text-slate-300" />
+                            )}
+                            <div>
+                                <p className="text-sm font-medium text-slate-800">後測</p>
+                                <p className="text-[10px] text-slate-500">{icopePostDate || '尚未進行'}</p>
+                            </div>
+                        </div>
+                        {/* 快速操作 */}
+                        <Link
+                            href="/icope/new"
+                            className="ml-2 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-50 text-teal-600 text-xs font-medium hover:bg-teal-100 transition-colors border border-teal-200"
+                        >
+                            {!icopeInitialDate ? '開始初評' : !icopePostDate ? '進行後測' : '查看紀錄'}
+                            <ArrowRight className="w-3 h-3" />
+                        </Link>
+                    </div>
+                </div>
+
+                {/* 分隔線 */}
+                <div className="border-t border-slate-100" />
+
+                {/* Boccia 進度 */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-700">🎯 地板滾球分析</span>
+                    </div>
+                    <div className="flex items-center gap-3 pl-1">
+                        {/* 前測 */}
+                        <div className="flex items-center gap-2">
+                            {bocciaPreDate ? (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            ) : (
+                                <Circle className="w-5 h-5 text-slate-300" />
+                            )}
+                            <div>
+                                <p className="text-sm font-medium text-slate-800">前測</p>
+                                <p className="text-[10px] text-slate-500">{bocciaPreDate || '尚未進行'}</p>
+                            </div>
+                        </div>
+                        {/* 連接線 */}
+                        <div className={`flex-1 h-0.5 rounded-full ${bocciaPreDate ? 'bg-emerald-300' : 'bg-slate-200'}`} />
+                        {/* 後測 */}
+                        <div className="flex items-center gap-2">
+                            {bocciaPostDate ? (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            ) : (
+                                <Circle className="w-5 h-5 text-slate-300" />
+                            )}
+                            <div>
+                                <p className="text-sm font-medium text-slate-800">後測</p>
+                                <p className="text-[10px] text-slate-500">{bocciaPostDate || '尚未進行'}</p>
+                            </div>
+                        </div>
+                        {/* 快速操作 */}
+                        <Link
+                            href={`/analysis/${elderId}`}
+                            className="ml-2 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 text-xs font-medium hover:bg-amber-100 transition-colors border border-amber-200"
+                        >
+                            {!bocciaPreDate ? '開始前測' : !bocciaPostDate ? '進行後測' : '查看紀錄'}
+                            <ArrowRight className="w-3 h-3" />
+                        </Link>
+                    </div>
+                </div>
+
+                {/* 快速操作按鈕列 */}
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                    <Link href="/icope/new" className="flex-1 py-2.5 rounded-xl text-center text-sm font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 transition-colors border border-teal-200">
+                        📋 ICOPE 評估
+                    </Link>
+                    <Link href={`/analysis/${elderId}`} className="flex-1 py-2.5 rounded-xl text-center text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200">
+                        🎯 滾球分析
+                    </Link>
+                    <button onClick={handleExportExcel} disabled={exporting} className="flex-1 py-2.5 rounded-xl text-center text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50">
+                        {exporting ? '匯出中...' : '📥 匯出報告'}
                     </button>
                 </div>
             </div>

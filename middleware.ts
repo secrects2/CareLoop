@@ -71,6 +71,7 @@ export const config = {
         '/admin/:path*',
         '/icope/:path*',
         '/ai-lab/:path*',
+        '/events/:path*',
         '/privacy',
         '/terms',
         '/contact',
