@@ -39,9 +39,10 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                 throw new Error('LIFF ID 未設定')
             }
 
-            // 2. If not logged in, trigger LINE Login
+            // 2. If not logged in, save eventId and trigger LINE Login
             if (!liff.isLoggedIn()) {
-                // redirectUri will bring user back to this page after login
+                // Save eventId to localStorage so it survives the login redirect
+                localStorage.setItem('checkin_event_id', eventId)
                 liff.login({
                     redirectUri: window.location.href,
                 })

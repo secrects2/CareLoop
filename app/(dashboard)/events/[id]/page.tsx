@@ -131,9 +131,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         return `${h}:${m}`
     }
 
-    // QR Code URL: points to LIFF with eventId param
+    // QR Code URL: uses LIFF path format so eventId survives redirects
+    // https://liff.line.me/{LIFF_ID}/{eventId} → endpoint: /checkin/{eventId}
     const qrUrl = CHECKIN_LIFF_ID
-        ? `https://liff.line.me/${CHECKIN_LIFF_ID}?eventId=${id}`
+        ? `https://liff.line.me/${CHECKIN_LIFF_ID}/${id}`
         : `${typeof window !== 'undefined' ? window.location.origin : ''}/checkin/${id}`
 
     if (loading) {

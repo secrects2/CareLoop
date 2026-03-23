@@ -25,7 +25,9 @@ type Status = 'loading' | 'checking-in' | 'success' | 'already' | 'error'
 
 function CheckinContent() {
     const searchParams = useSearchParams()
-    const eventId = searchParams.get('eventId') || ''
+    // Try query param first, then localStorage fallback (survives LINE Login redirect)
+    const eventId = searchParams.get('eventId') || 
+        (typeof window !== 'undefined' ? localStorage.getItem('checkin_event_id') : '') || ''
     const [status, setStatus] = useState<Status>('loading')
     const [result, setResult] = useState<CheckinResult | null>(null)
     const [errorMsg, setErrorMsg] = useState('')
@@ -45,8 +47,9 @@ function CheckinContent() {
                 throw new Error('LIFF ID 未設定')
             }
 
-            // 2. If not logged in, trigger LINE Login
+            // 2. If not logged in, save eventId and trigger LINE Login
             if (!liff.isLoggedIn()) {
+                localStorage.setItem('checkin_event_id', eventId)
                 liff.login({
                     redirectUri: window.location.href,
                 })
