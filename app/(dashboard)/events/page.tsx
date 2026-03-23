@@ -70,15 +70,19 @@ export default function EventsListPage() {
     }, [fetchEvents])
 
     const handleDelete = async (id: string) => {
-        const supabase = createClient()
-        const { error } = await supabase.from('events').delete().eq('id', id)
-        if (error) {
-            toast.error('刪除失敗：' + error.message)
-            return
+        try {
+            const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
+            const data = await res.json()
+            if (!res.ok) {
+                toast.error('刪除失敗：' + (data.error || '未知錯誤'))
+                return
+            }
+            toast.success('活動已刪除')
+            setDeleteConfirm(null)
+            fetchEvents()
+        } catch (err: any) {
+            toast.error('刪除失敗：' + err.message)
         }
-        toast.success('活動已刪除')
-        setDeleteConfirm(null)
-        fetchEvents()
     }
 
     const handleExportExcel = async (event: Event) => {
