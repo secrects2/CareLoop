@@ -8,7 +8,8 @@ import toast from 'react-hot-toast'
 import { logActivity } from '@/lib/activity-log'
 import AnalysisReport from '@/components/analysis/AnalysisReport'
 import { type AnalysisMetrics } from '@/lib/analysis/ai-prescription'
-import { CheckCircle2, Circle, ArrowRight } from 'lucide-react'
+import { CheckCircle2, Circle, ArrowRight, QrCode, Download, Printer } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface Elder {
     id: string
@@ -45,6 +46,80 @@ export default function ElderDetailPage() {
     const [expandedSession, setExpandedSession] = useState<string | null>(null)
     const [exporting, setExporting] = useState(false)
     const [reportSession, setReportSession] = useState<Session | null>(null)
+    const [showQR, setShowQR] = useState(false)
+
+    // 長輩專屬 QR Code URL
+    const elderQrUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/elder-checkin/${elderId}`
+        : ''
+
+    // 下載 QR Code 為 PNG
+    const handleDownloadQR = () => {
+        const svg = document.getElementById('elder-qr-svg')
+        if (!svg) return
+        const svgData = new XMLSerializer().serializeToString(svg)
+        const canvas = document.createElement('canvas')
+        canvas.width = 800
+        canvas.height = 1000
+        const ctx = canvas.getContext('2d')!
+        const img = new Image()
+        img.onload = () => {
+            // 白色背景
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, 800, 1000)
+            // 標題
+            ctx.fillStyle = '#1e293b'
+            ctx.font = 'bold 36px sans-serif'
+            ctx.textAlign = 'center'
+            ctx.fillText('惠生健康檢測平台', 400, 60)
+            // 姓名
+            ctx.font = 'bold 48px sans-serif'
+            ctx.fillText(elder?.name || '', 400, 120)
+            // QR Code
+            ctx.drawImage(img, 100, 160, 600, 600)
+            // 底部提示
+            ctx.fillStyle = '#64748b'
+            ctx.font = '24px sans-serif'
+            ctx.fillText('掃描此 QR Code 即可簽到', 400, 830)
+            ctx.font = '18px sans-serif'
+            ctx.fillText(`ID: ${elderId.slice(0, 8)}...`, 400, 870)
+            // 下載
+            const link = document.createElement('a')
+            link.download = `${elder?.name || '長輩'}_QRCode.png`
+            link.href = canvas.toDataURL('image/png')
+            link.click()
+        }
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+    }
+
+    // 列印 QR Code
+    const handlePrintQR = () => {
+        const svg = document.getElementById('elder-qr-svg')
+        if (!svg) return
+        const svgData = new XMLSerializer().serializeToString(svg)
+        const printWindow = window.open('', '_blank')
+        if (!printWindow) return
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html><head><title>${elder?.name} QR Code</title>
+            <style>
+                body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: sans-serif; }
+                h1 { font-size: 24px; color: #1e293b; margin-bottom: 4px; }
+                h2 { font-size: 36px; color: #1e293b; margin-top: 0; }
+                .hint { color: #64748b; font-size: 16px; margin-top: 16px; }
+                .id { color: #94a3b8; font-size: 12px; }
+                @media print { body { padding: 0; } }
+            </style></head><body>
+                <h1>惠生健康檢測平台</h1>
+                <h2>${elder?.name || ''}</h2>
+                ${svgData}
+                <p class="hint">掃描此 QR Code 即可簽到</p>
+                <p class="id">ID: ${elderId.slice(0, 8)}...</p>
+            </body></html>
+        `)
+        printWindow.document.close()
+        printWindow.print()
+    }
 
     // ICOPE + Boccia 前後測進度
     const [icopeInitialDate, setIcopeInitialDate] = useState<string | null>(null)
@@ -198,7 +273,10 @@ export default function ElderDetailPage() {
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => setShowQR(!showQR)} className="px-4 py-2.5 rounded-xl text-sm font-medium text-violet-600 border border-violet-200 hover:bg-violet-50 transition-colors flex items-center gap-1.5">
+                        <QrCode className="w-4 h-4" /> QR Code
+                    </button>
                     <Link href={`/analysis/${elderId}`} className="btn-accent text-sm">
                         🤖 開始分析
                     </Link>
@@ -210,6 +288,53 @@ export default function ElderDetailPage() {
                     </button>
                 </div>
             </div>
+
+            {/* 🔲 個人專屬 QR Code */}
+            {showQR && (
+                <div className="glass-card p-6">
+                    <div className="flex flex-col sm:flex-row items-center gap-6">
+                        {/* QR Code */}
+                        <div className="bg-white p-4 rounded-2xl shadow-inner border border-slate-100">
+                            <QRCodeSVG
+                                id="elder-qr-svg"
+                                value={elderQrUrl}
+                                size={200}
+                                level="H"
+                                includeMargin
+                            />
+                        </div>
+                        {/* 說明 & 按鈕 */}
+                        <div className="flex-1 text-center sm:text-left space-y-3">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 justify-center sm:justify-start">
+                                    <QrCode className="w-5 h-5 text-violet-500" />
+                                    {elder.name} 的專屬 QR Code
+                                </h3>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    列印此 QR Code 給長輩，活動現場由工作人員掃描即可完成簽到
+                                </p>
+                            </div>
+                            <div className="flex gap-2 justify-center sm:justify-start">
+                                <button
+                                    onClick={handleDownloadQR}
+                                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors"
+                                >
+                                    <Download className="w-4 h-4" /> 下載 PNG
+                                </button>
+                                <button
+                                    onClick={handlePrintQR}
+                                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-violet-600 border border-violet-200 hover:bg-violet-50 transition-colors"
+                                >
+                                    <Printer className="w-4 h-4" /> 列印
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                                ※ 適用於沒有手機的長輩，可搭配活動簽到系統使用
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 📋 統一前後測進度追蹤器 */}
             <div className="glass-card p-6 space-y-5">
