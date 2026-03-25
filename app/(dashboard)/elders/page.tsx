@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
@@ -15,6 +15,9 @@ interface Elder {
     notes: string | null
     id_number: string | null
     phone: string | null
+    education_level: string | null
+    blood_pressure: string | null
+    pulse: number | null
     chronic_diseases: string[] | null
     created_at: string
     session_count?: number
@@ -24,7 +27,7 @@ export default function EldersPage() {
     const [elders, setElders] = useState<Elder[]>([])
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
-    const [formData, setFormData] = useState({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', chronic_diseases_input: '' })
+    const [formData, setFormData] = useState({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', education_level: '', blood_pressure: '', pulse: '', chronic_diseases_input: '' })
     const [submitting, setSubmitting] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const searchParams = useSearchParams()
@@ -91,6 +94,11 @@ export default function EldersPage() {
                     gender: formData.gender || null,
                     birth_date: formData.birth_date || null,
                     notes: formData.notes.trim() || null,
+                    id_number: formData.id_number.trim() || null,
+                    phone: formData.phone.trim() || null,
+                    education_level: formData.education_level || null,
+                    blood_pressure: formData.blood_pressure.trim() || null,
+                    pulse: formData.pulse ? parseInt(formData.pulse) : null,
                 })
                 .select('id')
                 .single()
@@ -120,7 +128,7 @@ export default function EldersPage() {
             }
 
             logActivity('新增長輩', `姓名: ${formData.name.trim()}, 身分證: ${formData.id_number.trim()}`, 'elder')
-            setFormData({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', chronic_diseases_input: '' })
+            setFormData({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', education_level: '', blood_pressure: '', pulse: '', chronic_diseases_input: '' })
             setShowForm(false)
             fetchElders()
         } catch (err: any) {
@@ -203,6 +211,46 @@ export default function EldersPage() {
                                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                 className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 placeholder="例：0912345678"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-1">教育程度</label>
+                            <select
+                                value={formData.education_level}
+                                onChange={e => setFormData({ ...formData, education_level: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 focus:border-primary-500 focus:outline-none transition-colors"
+                                title="教育程度"
+                            >
+                                <option value="">— 請選擇 —</option>
+                                <option value="不識字">不識字</option>
+                                <option value="識字但未就學">識字但未就學</option>
+                                <option value="國小">國小</option>
+                                <option value="國中">國中</option>
+                                <option value="高中職">高中職</option>
+                                <option value="大專">大專</option>
+                                <option value="大學以上">大學以上</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-1">血壓 (mmHg)</label>
+                            <input
+                                type="text"
+                                value={formData.blood_pressure}
+                                onChange={e => setFormData({ ...formData, blood_pressure: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                                placeholder="例：120/80"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-1">脈搏 (次/分)</label>
+                            <input
+                                type="number"
+                                value={formData.pulse}
+                                onChange={e => setFormData({ ...formData, pulse: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
+                                placeholder="例：72"
+                                min={30}
+                                max={200}
                             />
                         </div>
                         <div>

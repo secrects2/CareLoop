@@ -128,19 +128,63 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         }
     }, [id])
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
         if (!event) return
-        const rows = checkins.map((c, idx) => ({
-            '序號': idx + 1,
-            'LINE 名稱': c.display_name,
-            'LINE User ID': c.line_user_id,
-            '報到時間': new Date(c.checked_in_at).toLocaleString('zh-TW'),
-        }))
+
+        // 取得所有以 elder_ 開頭的簽到 ID，對應查詢長輩完整資料
+        const elderIds = checkins
+            .filter(c => c.line_user_id.startsWith('elder_'))
+            .map(c => c.line_user_id.replace('elder_', ''))
+
+        let eldersMap: Record<string, any> = {}
+        if (elderIds.length > 0) {
+            const supabase = createClient()
+            const { data: eldersData } = await supabase
+                .from('elders')
+                .select('id, name, id_number, birth_date, gender, education_level, phone, blood_pressure, pulse')
+                .in('id', elderIds)
+            if (eldersData) {
+                eldersData.forEach(e => { eldersMap[e.id] = e })
+            }
+        }
+
+        const calcAge = (birthDate: string | null) => {
+            if (!birthDate) return ''
+            const birth = new Date(birthDate)
+            const today = new Date()
+            let age = today.getFullYear() - birth.getFullYear()
+            if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--
+            return age
+        }
+
+        const rows = checkins.map((c, idx) => {
+            const isElder = c.line_user_id.startsWith('elder_')
+            const elderData = isElder ? eldersMap[c.line_user_id.replace('elder_', '')] : null
+
+            return {
+                '序號': idx + 1,
+                '姓名': elderData?.name || c.display_name.replace('（代簽）', ''),
+                '身分證字號': elderData?.id_number || '',
+                '出生年月日': elderData?.birth_date || '',
+                '年齡': elderData ? calcAge(elderData.birth_date) : '',
+                '性別': elderData ? (elderData.gender === 'female' ? '女' : '男') : '',
+                '教育程度': elderData?.education_level || '',
+                '通訊電話': elderData?.phone || '',
+                '報到時間': new Date(c.checked_in_at).toLocaleString('zh-TW'),
+                '血壓 (mmHg)': elderData?.blood_pressure || '',
+                '脈搏 (次/分)': elderData?.pulse || '',
+                '簽到方式': isElder ? 'QR Code 代簽' : 'LINE 自行簽到',
+            }
+        })
 
         const ws = XLSX.utils.json_to_sheet(rows)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, '簽到名單')
-        ws['!cols'] = [{ wch: 6 }, { wch: 20 }, { wch: 36 }, { wch: 22 }]
+        ws['!cols'] = [
+            { wch: 5 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 5 },
+            { wch: 5 }, { wch: 10 }, { wch: 14 }, { wch: 22 },
+            { wch: 12 }, { wch: 10 }, { wch: 14 },
+        ]
         XLSX.writeFile(wb, `${event.title}_簽到名單_${event.event_date}.xlsx`)
         toast.success('Excel 匯出成功')
     }
