@@ -96,10 +96,35 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     toast.success(`${newCheckin.display_name} 已報到！`, { icon: '🎉' })
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log('Realtime subscription status:', status)
+            })
+
+        // ✅ Polling fallback: Realtime 可能未啟用，每 10 秒自動刷新
+        const pollInterval = setInterval(() => {
+            const poll = async () => {
+                const { data } = await supabase
+                    .from('event_checkins')
+                    .select('*')
+                    .eq('event_id', id)
+                    .order('checked_in_at', { ascending: false })
+                if (data) {
+                    setCheckins(prev => {
+                        // 如果人數變多了，顯示 toast
+                        if (data.length > prev.length) {
+                            const newOnes = data.filter(d => !prev.find(p => p.id === d.id))
+                            newOnes.forEach(n => toast.success(`${n.display_name} 已報到！`, { icon: '🎉' }))
+                        }
+                        return data
+                    })
+                }
+            }
+            poll()
+        }, 10000)
 
         return () => {
             supabase.removeChannel(channel)
+            clearInterval(pollInterval)
         }
     }, [id])
 
