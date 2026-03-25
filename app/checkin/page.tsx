@@ -29,7 +29,7 @@ function CheckinContent() {
     }, [queryEventId])
 
     const getEventId = () => queryEventId || localStorage.getItem('checkin_event_id') || ''
-    const liffUrl = CHECKIN_LIFF_ID ? `https://liff.line.me/${CHECKIN_LIFF_ID}/checkin/${getEventId()}` : ''
+    const liffUrl = CHECKIN_LIFF_ID ? `https://liff.line.me/${CHECKIN_LIFF_ID}/${getEventId()}` : ''
 
     useEffect(() => {
         const initLiff = async () => {
@@ -53,8 +53,12 @@ function CheckinContent() {
 
     const handleLineLogin = () => {
         if (!liffReady) return
+        // 使用當前 URL 或 eventId 路徑作為 redirectUri
         const eventId = getEventId()
-        liff.login({ redirectUri: `${window.location.origin}/checkin/${eventId}` })
+        const redirectUri = eventId 
+            ? `${window.location.origin}/checkin/${eventId}` 
+            : window.location.origin + window.location.pathname
+        liff.login({ redirectUri })
     }
 
     const handleOpenInLine = () => { if (liffUrl) window.location.href = liffUrl }

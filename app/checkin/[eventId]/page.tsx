@@ -31,7 +31,8 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
     const getEventId = () => pathEventId || localStorage.getItem('checkin_event_id') || ''
 
     // LIFF URL for "open in LINE" button
-    const liffUrl = CHECKIN_LIFF_ID ? `https://liff.line.me/${CHECKIN_LIFF_ID}/checkin/${getEventId()}` : ''
+    // 注意：LIFF path 會 append 到 endpoint URL，如果 endpoint 已是 /checkin，只需要帶 eventId
+    const liffUrl = CHECKIN_LIFF_ID ? `https://liff.line.me/${CHECKIN_LIFF_ID}/${getEventId()}` : ''
 
     // Step 1: Init LIFF (don't auto-login)
     useEffect(() => {
@@ -76,8 +77,8 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
     // Step 2: 使用者點擊登入後才觸發
     const handleLineLogin = () => {
         if (liffReady) {
-            const eventId = getEventId()
-            const redirectUri = `${window.location.origin}/checkin/${eventId}`
+            // 使用當前頁面 URL 作為 redirectUri（最安全，不會構造錯誤的路徑）
+            const redirectUri = window.location.origin + window.location.pathname
             liff.login({ redirectUri })
         }
     }
