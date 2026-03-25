@@ -27,6 +27,7 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
     const [status, setStatus] = useState<Status>('loading')
     const [result, setResult] = useState<CheckinResult | null>(null)
     const [errorMsg, setErrorMsg] = useState('')
+    const [retryCount, setRetryCount] = useState(0)
 
     // Save eventId to localStorage IMMEDIATELY on mount (before any LIFF operations)
     useEffect(() => {
@@ -48,24 +49,47 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
             // Save to localStorage as backup
             localStorage.setItem('checkin_event_id', eventId)
 
-            // 1. Initialize LIFF
-            if (CHECKIN_LIFF_ID) {
-                await liff.init({ liffId: CHECKIN_LIFF_ID })
-            } else {
+            // 1. Initialize LIFF (with error recovery)
+            if (!CHECKIN_LIFF_ID) {
                 throw new Error('LIFF ID 未設定')
+            }
+
+            try {
+                await liff.init({ liffId: CHECKIN_LIFF_ID })
+            } catch (initError: any) {
+                console.warn('LIFF init error (will retry):', initError)
+                
+                // LIFF init 失敗常見於首次 OAuth callback
+                // 清除 URL 中的 OAuth 參數，讓使用者重新走一次乾淨的流程
+                if (window.location.search.includes('code=') || window.location.search.includes('liffClientId')) {
+                    // 清除 OAuth callback 參數，重導回乾淨的 URL
+                    const cleanUrl = window.location.origin + window.location.pathname
+                    window.location.replace(cleanUrl)
+                    return
+                }
+                throw new Error('LINE 登入初始化失敗，請重新掃描 QR Code')
             }
 
             // 2. If not logged in, trigger LINE Login
             if (!liff.isLoggedIn()) {
-                liff.login({
-                    redirectUri: window.location.href,
-                })
+                // 建構乾淨的 redirectUri（不帶任何 query params）
+                const redirectUri = `${window.location.origin}/checkin/${eventId}`
+                liff.login({ redirectUri })
                 return
             }
 
-            // 3. Get LINE Profile
+            // 3. Get LINE Profile (with retry)
             setStatus('checking-in')
-            const profile = await liff.getProfile()
+            let profile
+            try {
+                profile = await liff.getProfile()
+            } catch (profileErr: any) {
+                console.warn('getProfile failed, retrying after token refresh:', profileErr)
+                // Token 可能過期，嘗試重新登入
+                const redirectUri = `${window.location.origin}/checkin/${eventId}`
+                liff.login({ redirectUri })
+                return
+            }
 
             // 4. Call check-in API
             const res = await fetch('/api/events/checkin', {
@@ -97,9 +121,30 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
         }
     }, [pathEventId])
 
+    // 首次載入 + 自動重試（最多 1 次）
     useEffect(() => {
-        doCheckin()
+        // 若 URL 有 OAuth 回調參數，給 LIFF SDK 一點時間處理
+        const hasOAuthParams = window.location.search.includes('code=') || 
+                               window.location.hash.includes('access_token')
+        const delay = hasOAuthParams ? 500 : 0
+        
+        const timer = setTimeout(() => {
+            doCheckin()
+        }, delay)
+        return () => clearTimeout(timer)
     }, [doCheckin])
+
+    // 自動重試：如果首次失敗且是 LIFF 相關錯誤，自動重試一次
+    useEffect(() => {
+        if (status === 'error' && retryCount === 0 && 
+            (errorMsg.includes('初始化') || errorMsg.includes('INIT_FAILED'))) {
+            const timer = setTimeout(() => {
+                setRetryCount(1)
+                doCheckin()
+            }, 1500)
+            return () => clearTimeout(timer)
+        }
+    }, [status, retryCount, errorMsg, doCheckin])
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr + 'T00:00:00').toLocaleDateString('zh-TW', {
@@ -253,7 +298,7 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                         <h2 className="text-lg font-bold text-slate-800 mb-2">簽到失敗</h2>
                         <p className="text-sm text-slate-500 mb-6">{errorMsg}</p>
                         <button
-                            onClick={() => doCheckin()}
+                            onClick={() => { setRetryCount(0); doCheckin() }}
                             className="px-6 py-2.5 rounded-xl text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-all"
                         >
                             重試
