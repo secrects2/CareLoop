@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import { logActivity } from '@/lib/activity-log'
 import AnalysisReport from '@/components/analysis/AnalysisReport'
 import { type AnalysisMetrics } from '@/lib/analysis/ai-prescription'
-import { CheckCircle2, Circle, ArrowRight, QrCode, Download, Printer } from 'lucide-react'
+import { CheckCircle2, Circle, ArrowRight, QrCode, Download, Printer, Pencil } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
 interface Elder {
@@ -17,6 +17,11 @@ interface Elder {
     gender: string | null
     birth_date: string | null
     notes: string | null
+    id_number: string | null
+    phone: string | null
+    education_level: string | null
+    blood_pressure: string | null
+    pulse: number | null
 }
 
 interface Session {
@@ -47,6 +52,13 @@ export default function ElderDetailPage() {
     const [exporting, setExporting] = useState(false)
     const [reportSession, setReportSession] = useState<Session | null>(null)
     const [showQR, setShowQR] = useState(false)
+    const [showEdit, setShowEdit] = useState(false)
+    const [editForm, setEditForm] = useState({
+        name: '', gender: 'male', birth_date: '', notes: '',
+        id_number: '', phone: '', education_level: '',
+        blood_pressure: '', pulse: '',
+    })
+    const [saving, setSaving] = useState(false)
 
     // 長輩專屬 QR Code URL
     const elderQrUrl = typeof window !== 'undefined'
@@ -137,7 +149,20 @@ export default function ElderDetailPage() {
                 .eq('id', elderId)
                 .single()
 
-            if (elderData) setElder(elderData)
+            if (elderData) {
+                setElder(elderData)
+                setEditForm({
+                    name: elderData.name || '',
+                    gender: elderData.gender || 'male',
+                    birth_date: elderData.birth_date || '',
+                    notes: elderData.notes || '',
+                    id_number: elderData.id_number || '',
+                    phone: elderData.phone || '',
+                    education_level: elderData.education_level || '',
+                    blood_pressure: elderData.blood_pressure || '',
+                    pulse: elderData.pulse?.toString() || '',
+                })
+            }
 
             // Boccia sessions
             const { data: sessionData } = await supabase
@@ -274,6 +299,9 @@ export default function ElderDetailPage() {
                     </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => { setShowEdit(true); }} className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-1.5">
+                        <Pencil className="w-4 h-4" /> 編輯資料
+                    </button>
                     <button onClick={() => setShowQR(!showQR)} className="px-4 py-2.5 rounded-xl text-sm font-medium text-violet-600 border border-violet-200 hover:bg-violet-50 transition-colors flex items-center gap-1.5">
                         <QrCode className="w-4 h-4" /> QR Code
                     </button>
@@ -332,6 +360,101 @@ export default function ElderDetailPage() {
                                 ※ 適用於沒有手機的長輩，可搭配活動簽到系統使用
                             </p>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ✏️ 編輯基本資料 Modal */}
+            {showEdit && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-lg font-bold text-slate-800">✏️ 編輯長輩資料</h2>
+                            <button onClick={() => setShowEdit(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">✕</button>
+                        </div>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault()
+                            setSaving(true)
+                            const supabase = createClient()
+                            const { error } = await supabase.from('elders').update({
+                                name: editForm.name,
+                                gender: editForm.gender,
+                                birth_date: editForm.birth_date || null,
+                                notes: editForm.notes || null,
+                                id_number: editForm.id_number || null,
+                                phone: editForm.phone || null,
+                                education_level: editForm.education_level || null,
+                                blood_pressure: editForm.blood_pressure || null,
+                                pulse: editForm.pulse ? parseInt(editForm.pulse) : null,
+                            }).eq('id', elderId)
+                            if (error) {
+                                toast.error('儲存失敗: ' + error.message)
+                            } else {
+                                toast.success('資料已更新')
+                                setShowEdit(false)
+                                // 刷新資料
+                                const { data: updated } = await supabase.from('elders').select('*').eq('id', elderId).single()
+                                if (updated) setElder(updated)
+                            }
+                            setSaving(false)
+                        }} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">姓名 *</label>
+                                    <input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                </div>
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">性別</label>
+                                    <select value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" title="性別">
+                                        <option value="male">男</option>
+                                        <option value="female">女</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">身分證字號</label>
+                                    <input type="text" value={editForm.id_number} onChange={e => setEditForm({...editForm, id_number: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">出生日期</label>
+                                    <input type="date" value={editForm.birth_date} onChange={e => setEditForm({...editForm, birth_date: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">電話</label>
+                                    <input type="tel" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">教育程度</label>
+                                    <select value={editForm.education_level} onChange={e => setEditForm({...editForm, education_level: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" title="教育程度">
+                                        <option value="">未填寫</option>
+                                        <option value="不識字">不識字</option>
+                                        <option value="國小">國小</option>
+                                        <option value="國中">國中</option>
+                                        <option value="高中職">高中職</option>
+                                        <option value="專科">專科</option>
+                                        <option value="大學">大學</option>
+                                        <option value="研究所以上">研究所以上</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">血壓 (收縮壓/舒張壓)</label>
+                                    <input type="text" placeholder="例: 120/80" value={editForm.blood_pressure} onChange={e => setEditForm({...editForm, blood_pressure: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">脈搏 (次/分)</label>
+                                    <input type="number" placeholder="例: 72" value={editForm.pulse} onChange={e => setEditForm({...editForm, pulse: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">備註</label>
+                                <textarea rows={2} value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setShowEdit(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">取消</button>
+                                <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-500 transition-colors disabled:opacity-50">
+                                    {saving ? '儲存中...' : '✓ 儲存'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
