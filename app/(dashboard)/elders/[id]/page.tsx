@@ -435,14 +435,6 @@ export default function ElderDetailPage() {
                                         <option value="研究所以上">研究所以上</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">血壓 (收縮壓/舒張壓)</label>
-                                    <input type="text" placeholder="例: 120/80" value={editForm.blood_pressure} onChange={e => setEditForm({...editForm, blood_pressure: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">脈搏 (次/分)</label>
-                                    <input type="number" placeholder="例: 72" value={editForm.pulse} onChange={e => setEditForm({...editForm, pulse: e.target.value})} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 mb-1">備註</label>
