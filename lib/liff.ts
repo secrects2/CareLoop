@@ -43,18 +43,27 @@ let _initialized = false
  * @returns 是否成功初始化
  */
 export async function initLiff(): Promise<boolean> {
-    if (_initialized) return true
+    if (_initialized) {
+        console.log('[LIFF] Already initialized, isLoggedIn:', liff.isLoggedIn())
+        return true
+    }
     if (!LIFF_ID) {
-        console.warn('LIFF ID 未設定 (NEXT_PUBLIC_LIFF_ID)')
+        console.warn('[LIFF] LIFF ID 未設定 (NEXT_PUBLIC_LIFF_ID)')
         return false
     }
 
     try {
+        console.log('[LIFF] Initializing with ID:', LIFF_ID)
+        console.log('[LIFF] URL params:', window.location.search)
         await liff.init({ liffId: LIFF_ID })
         _initialized = true
+        console.log('[LIFF] Init success, isLoggedIn:', liff.isLoggedIn(), 'isInClient:', liff.isInClient())
+        if (liff.isLoggedIn()) {
+            console.log('[LIFF] Access token:', liff.getAccessToken()?.substring(0, 20) + '...')
+        }
         return true
     } catch (err) {
-        console.error('LIFF 初始化失敗:', err)
+        console.error('[LIFF] 初始化失敗:', err)
         return false
     }
 }
