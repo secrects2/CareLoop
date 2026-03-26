@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import * as XLSX from 'xlsx'
 import {
     ArrowLeft, MapPin, Clock, CalendarCheck, Users, Download,
-    Pencil, QrCode, Loader2
+    Pencil, QrCode, Loader2, Users2
 } from 'lucide-react'
 
 interface EventData {
@@ -263,6 +263,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     >
                         <Download className="w-4 h-4" />
                         匯出 Excel
+                    </button>
+                    <button
+                        onClick={async () => {
+                            const t = toast.loading('同步中...')
+                            try {
+                                const res = await fetch('/api/events/checkin/sync-elders', { method: 'POST' })
+                                const data = await res.json()
+                                if (!res.ok) throw new Error(data.error)
+                                toast.success(data.message || `已同步 ${data.synced} 位`, { id: t })
+                            } catch (err: any) {
+                                toast.error('同步失敗: ' + err.message, { id: t })
+                            }
+                        }}
+                        className="px-4 py-2 rounded-xl border border-violet-200 text-sm font-medium text-violet-600 hover:bg-violet-50 transition-colors flex items-center gap-2"
+                    >
+                        <Users2 className="w-4 h-4" />
+                        同步到長輩管理
                     </button>
                     <button
                         onClick={() => router.push(`/events/${id}/edit`)}
