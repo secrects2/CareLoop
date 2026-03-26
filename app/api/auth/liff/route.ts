@@ -55,7 +55,7 @@ export async function POST(request: Request) {
             const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
                 email: lineEmail,
                 password: linePassword,
-                email_confirm: true, // 跳過郵件驗證
+                email_confirm: true,
                 user_metadata: {
                     full_name: displayName,
                     avatar_url: pictureUrl || '',
@@ -64,14 +64,20 @@ export async function POST(request: Request) {
             })
 
             if (createErr) {
-                // 帳號可能已存在但未綁定 line_user_id → 嘗試透過 email 查找
-                const { data: { users } } = await supabaseAdmin.auth.admin.listUsers()
+                // 帳號已存在 → 用 email 查找
+                const { data: { users }, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
+                    page: 1,
+                    perPage: 1000,
+                })
+
                 const found = users?.find(u => u.email === lineEmail)
 
                 if (found) {
                     userId = found.id
+                    // 確保密碼正確
+                    await supabaseAdmin.auth.admin.updateUserById(userId, { password: linePassword })
                 } else {
-                    return NextResponse.json({ error: createErr.message }, { status: 500 })
+                    return NextResponse.json({ error: '帳號建立失敗：' + createErr.message }, { status: 500 })
                 }
             } else {
                 userId = newUser.user.id
