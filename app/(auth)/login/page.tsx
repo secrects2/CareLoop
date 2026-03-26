@@ -78,7 +78,10 @@ export default function LoginPage() {
                 }
 
                 setLiffStatus(`歡迎，${data.displayName}！`)
-                router.push('/dashboard')
+                // 等待 session cookie 寫入完成
+                await new Promise(r => setTimeout(r, 500))
+                // 用 full reload 確保 middleware 讀到新 session
+                window.location.replace('/dashboard')
 
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'LIFF 登入失敗'
