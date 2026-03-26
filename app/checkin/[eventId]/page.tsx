@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, use } from 'react'
 import liff from '@line/liff'
-import { CheckCircle, MapPin, Clock, CalendarCheck, Loader2, AlertCircle, PartyPopper, LogIn, Smartphone } from 'lucide-react'
+import { CheckCircle, MapPin, Clock, CalendarCheck, Loader2, AlertCircle, PartyPopper, LogIn, Smartphone, UserPlus, ChevronDown, ChevronUp } from 'lucide-react'
 
 const CHECKIN_LIFF_ID = process.env.NEXT_PUBLIC_CHECKIN_LIFF_ID || ''
 
@@ -22,6 +22,16 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
     const [errorMsg, setErrorMsg] = useState('')
     const [liffReady, setLiffReady] = useState(false)
     const [isInLineApp, setIsInLineApp] = useState(false)
+    const [lineProfile, setLineProfile] = useState<{ userId: string; displayName: string } | null>(null)
+
+    // 長輩資料表單
+    const [showRegForm, setShowRegForm] = useState(false)
+    const [regSubmitting, setRegSubmitting] = useState(false)
+    const [regDone, setRegDone] = useState(false)
+    const [regForm, setRegForm] = useState({
+        name: '', id_number: '', birth_date: '', gender: 'male',
+        education_level: '', phone: '', blood_pressure: '', pulse: '',
+    })
 
     // Save eventId immediately
     useEffect(() => {
@@ -98,6 +108,8 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
             if (!eventId) throw new Error('缺少活動 ID')
 
             const profile = await liff.getProfile()
+            setLineProfile({ userId: profile.userId, displayName: profile.displayName })
+            setRegForm(prev => ({ ...prev, name: profile.displayName }))
 
             const res = await fetch('/api/events/checkin', {
                 method: 'POST',
@@ -133,6 +145,36 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
     const formatTime = (timeStr: string) => { const [h, m] = timeStr.split(':'); return `${h}:${m}` }
     const formatCheckinTime = (isoStr: string) =>
         new Date(isoStr).toLocaleString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
+    // 提交長輩資料
+    const handleRegSubmit = async () => {
+        if (!lineProfile || !regForm.name.trim()) return
+        setRegSubmitting(true)
+        try {
+            const res = await fetch('/api/events/checkin/register-elder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lineUserId: lineProfile.userId,
+                    displayName: lineProfile.displayName,
+                    name: regForm.name,
+                    idNumber: regForm.id_number,
+                    birthDate: regForm.birth_date,
+                    gender: regForm.gender,
+                    educationLevel: regForm.education_level,
+                    phone: regForm.phone,
+                    bloodPressure: regForm.blood_pressure,
+                    pulse: regForm.pulse,
+                }),
+            })
+            if (!res.ok) throw new Error((await res.json()).error)
+            setRegDone(true)
+            setShowRegForm(false)
+        } catch (err: any) {
+            alert('儲存失敗：' + err.message)
+        }
+        setRegSubmitting(false)
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)' }}>
@@ -228,6 +270,94 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                             <InfoRow icon={<MapPin className="w-5 h-5 text-primary-600" />} label="活動地點" value={result.event.location} />
                             <InfoRow icon={<CheckCircle className="w-5 h-5 text-emerald-600" />} label="報到時間" value={formatCheckinTime(result.checkin.checked_in_at)} highlight />
                         </div>
+
+                        {/* 長輩資料填寫區 */}
+                        {!regDone ? (
+                            <div className="px-6 pb-6">
+                                <button
+                                    onClick={() => setShowRegForm(!showRegForm)}
+                                    className="w-full flex items-center justify-between py-3 px-4 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 text-sm font-medium hover:bg-violet-100 transition-colors"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <UserPlus className="w-4 h-4" />
+                                        填寫基本資料（方便日後報表彙整）
+                                    </span>
+                                    {showRegForm ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+
+                                {showRegForm && (
+                                    <div className="mt-3 space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">姓名 *</label>
+                                                <input type="text" value={regForm.name} onChange={e => setRegForm({ ...regForm, name: e.target.value })}
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="真實姓名" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">身分證字號</label>
+                                                <input type="text" value={regForm.id_number} onChange={e => setRegForm({ ...regForm, id_number: e.target.value.toUpperCase() })}
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800 font-mono" placeholder="A123456789" maxLength={10} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">出生日期</label>
+                                                <input type="date" value={regForm.birth_date} onChange={e => setRegForm({ ...regForm, birth_date: e.target.value })}
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">性別</label>
+                                                <select value={regForm.gender} onChange={e => setRegForm({ ...regForm, gender: e.target.value })} title="性別"
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800">
+                                                    <option value="male">男</option>
+                                                    <option value="female">女</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">教育程度</label>
+                                                <select value={regForm.education_level} onChange={e => setRegForm({ ...regForm, education_level: e.target.value })} title="教育程度"
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800">
+                                                    <option value="">— 選擇 —</option>
+                                                    <option value="不識字">不識字</option>
+                                                    <option value="國小">國小</option>
+                                                    <option value="國中">國中</option>
+                                                    <option value="高中職">高中職</option>
+                                                    <option value="大專">大專</option>
+                                                    <option value="大學以上">大學以上</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">電話</label>
+                                                <input type="tel" value={regForm.phone} onChange={e => setRegForm({ ...regForm, phone: e.target.value })}
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="0912345678" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">血壓</label>
+                                                <input type="text" value={regForm.blood_pressure} onChange={e => setRegForm({ ...regForm, blood_pressure: e.target.value })}
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="120/80" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-500 mb-1">脈搏</label>
+                                                <input type="number" value={regForm.pulse} onChange={e => setRegForm({ ...regForm, pulse: e.target.value })}
+                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="72" />
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleRegSubmit}
+                                            disabled={regSubmitting || !regForm.name.trim()}
+                                            className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors disabled:opacity-50"
+                                        >
+                                            {regSubmitting ? '儲存中...' : '✓ 儲存基本資料'}
+                                        </button>
+                                        <p className="text-xs text-slate-400 text-center">資料將用於活動報表彙整，不會公開</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="px-6 pb-6">
+                                <div className="py-3 px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm text-center flex items-center justify-center gap-2">
+                                    <CheckCircle className="w-4 h-4" /> 基本資料已儲存
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

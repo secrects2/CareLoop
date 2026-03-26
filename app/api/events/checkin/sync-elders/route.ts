@@ -1,0 +1,104 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// POST /api/events/checkin/sync-elders
+// 將現有的 LINE 簽到紀錄同步建入長輩管理
+// 只處理尚未在 elders 中有對應 line_user_id 的紀錄
+export async function POST() {
+    try {
+        // 1. 取得所有非 elder_ 開頭的 LINE 簽到（真實 LINE 用戶）
+        const { data: checkins } = await supabaseAdmin
+            .from('event_checkins')
+            .select('line_user_id, display_name, picture_url')
+            .not('line_user_id', 'like', 'elder_%')
+            .order('checked_in_at', { ascending: true })
+
+        if (!checkins || checkins.length === 0) {
+            return NextResponse.json({ success: true, synced: 0, message: '沒有需要同步的簽到記錄' })
+        }
+
+        // 2. 去重（同一個 LINE user 可能簽到多次）
+        const uniqueUsers = new Map<string, { displayName: string; pictureUrl: string | null }>()
+        for (const c of checkins) {
+            if (!uniqueUsers.has(c.line_user_id)) {
+                uniqueUsers.set(c.line_user_id, {
+                    displayName: c.display_name,
+                    pictureUrl: c.picture_url,
+                })
+            }
+        }
+
+        // 3. 檢查哪些已經在 elders 中有對應的 line_user_id
+        const lineUserIds = Array.from(uniqueUsers.keys())
+        const { data: existingElders } = await supabaseAdmin
+            .from('elders')
+            .select('line_user_id')
+            .in('line_user_id', lineUserIds)
+
+        const existingSet = new Set((existingElders || []).map(e => e.line_user_id))
+
+        // 4. 找到一個 instructor_id
+        let instructorId: string | null = null
+        const { data: anyElder } = await supabaseAdmin
+            .from('elders')
+            .select('instructor_id')
+            .limit(1)
+            .maybeSingle()
+
+        if (anyElder) {
+            instructorId = anyElder.instructor_id
+        } else {
+            const { data: profile } = await supabaseAdmin
+                .from('profiles')
+                .select('id')
+                .limit(1)
+                .maybeSingle()
+            instructorId = profile?.id || null
+        }
+
+        if (!instructorId) {
+            return NextResponse.json({ error: '系統尚未設定管理員' }, { status: 500 })
+        }
+
+        // 5. 批次建立新的長輩記錄
+        const newElders: any[] = []
+        for (const [lineUserId, info] of uniqueUsers) {
+            if (!existingSet.has(lineUserId)) {
+                newElders.push({
+                    instructor_id: instructorId,
+                    name: info.displayName.replace('（代簽）', ''),
+                    line_user_id: lineUserId,
+                    gender: null,
+                    birth_date: null,
+                    notes: `由 LINE 簽到自動建檔`,
+                })
+            }
+        }
+
+        if (newElders.length === 0) {
+            return NextResponse.json({ success: true, synced: 0, message: '所有簽到用戶已同步' })
+        }
+
+        const { error: insertError } = await supabaseAdmin
+            .from('elders')
+            .insert(newElders)
+
+        if (insertError) {
+            return NextResponse.json({ error: '同步失敗: ' + insertError.message }, { status: 500 })
+        }
+
+        return NextResponse.json({
+            success: true,
+            synced: newElders.length,
+            total: uniqueUsers.size,
+            message: `已同步 ${newElders.length} 位長輩到長輩管理`,
+        })
+    } catch (err: any) {
+        return NextResponse.json({ error: err.message || '伺服器錯誤' }, { status: 500 })
+    }
+}

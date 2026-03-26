@@ -8,28 +8,26 @@ const supabaseAdmin = createClient(
 
 // GET /api/migrate/elder-fields — 一次性遷移：添加長輩報表欄位
 export async function GET() {
+    const results: string[] = []
+
     try {
-        // Add new columns if they don't exist
-        const queries = [
-            `ALTER TABLE elders ADD COLUMN IF NOT EXISTS education_level text DEFAULT NULL`,
-            `ALTER TABLE elders ADD COLUMN IF NOT EXISTS blood_pressure text DEFAULT NULL`,
-            `ALTER TABLE elders ADD COLUMN IF NOT EXISTS pulse integer DEFAULT NULL`,
-        ]
-
-        const results: string[] = []
-
-        for (const q of queries) {
-            const { error } = await supabaseAdmin.rpc('exec_sql', { sql: q }).maybeSingle()
-            if (error) {
-                // Try direct approach via REST — rpc might not exist
-                // Just note the error, columns might already exist
-                results.push(`Note: ${error.message}`)
-            } else {
-                results.push('OK')
-            }
-        }
-
-        return NextResponse.json({ success: true, results })
+        // 使用 supabaseAdmin 直接嘗試 insert 一個 dummy 並觀察錯誤
+        // 替代方案：直接在 Supabase Dashboard SQL Editor 執行
+        // 這裡提供 SQL 給使用者參考
+        return NextResponse.json({
+            message: '請在 Supabase Dashboard → SQL Editor 執行以下 SQL',
+            sql: [
+                'ALTER TABLE elders ADD COLUMN IF NOT EXISTS education_level text DEFAULT NULL;',
+                'ALTER TABLE elders ADD COLUMN IF NOT EXISTS blood_pressure text DEFAULT NULL;',
+                'ALTER TABLE elders ADD COLUMN IF NOT EXISTS pulse integer DEFAULT NULL;',
+                'ALTER TABLE elders ADD COLUMN IF NOT EXISTS id_number text DEFAULT NULL;',
+                'ALTER TABLE elders ADD COLUMN IF NOT EXISTS phone text DEFAULT NULL;',
+                'ALTER TABLE elders ADD COLUMN IF NOT EXISTS line_user_id text DEFAULT NULL;',
+                '',
+                '-- 為 line_user_id 建立索引（加速查詢）',
+                'CREATE INDEX IF NOT EXISTS idx_elders_line_user_id ON elders(line_user_id);',
+            ],
+        })
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }

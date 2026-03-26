@@ -130,22 +130,36 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
     const handleExportExcel = async () => {
         if (!event) return
+        const supabase = createClient()
 
-        // 取得所有以 elder_ 開頭的簽到 ID，對應查詢長輩完整資料
-        const elderIds = checkins
+        // 1. 取得 elder_ 開頭的簽到 → 對應 elders.id
+        const elderPrefixIds = checkins
             .filter(c => c.line_user_id.startsWith('elder_'))
             .map(c => c.line_user_id.replace('elder_', ''))
 
-        let eldersMap: Record<string, any> = {}
-        if (elderIds.length > 0) {
-            const supabase = createClient()
-            const { data: eldersData } = await supabase
+        // 2. 取得 LINE 用戶簽到 → 對應 elders.line_user_id
+        const lineUserIds = checkins
+            .filter(c => !c.line_user_id.startsWith('elder_'))
+            .map(c => c.line_user_id)
+
+        let eldersMap: Record<string, any> = {} // key = line_user_id or elder_{id}
+
+        // 查詢 elder_ 開頭的
+        if (elderPrefixIds.length > 0) {
+            const { data } = await supabase
                 .from('elders')
                 .select('id, name, id_number, birth_date, gender, education_level, phone, blood_pressure, pulse')
-                .in('id', elderIds)
-            if (eldersData) {
-                eldersData.forEach(e => { eldersMap[e.id] = e })
-            }
+                .in('id', elderPrefixIds)
+            if (data) data.forEach(e => { eldersMap[`elder_${e.id}`] = e })
+        }
+
+        // 查詢 LINE 用戶對應的 elders
+        if (lineUserIds.length > 0) {
+            const { data } = await supabase
+                .from('elders')
+                .select('line_user_id, name, id_number, birth_date, gender, education_level, phone, blood_pressure, pulse')
+                .in('line_user_id', lineUserIds)
+            if (data) data.forEach(e => { if (e.line_user_id) eldersMap[e.line_user_id] = e })
         }
 
         const calcAge = (birthDate: string | null) => {
@@ -158,8 +172,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         }
 
         const rows = checkins.map((c, idx) => {
-            const isElder = c.line_user_id.startsWith('elder_')
-            const elderData = isElder ? eldersMap[c.line_user_id.replace('elder_', '')] : null
+            const elderData = eldersMap[c.line_user_id] || null
 
             return {
                 '序號': idx + 1,
@@ -173,7 +186,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 '報到時間': new Date(c.checked_in_at).toLocaleString('zh-TW'),
                 '血壓 (mmHg)': elderData?.blood_pressure || '',
                 '脈搏 (次/分)': elderData?.pulse || '',
-                '簽到方式': isElder ? 'QR Code 代簽' : 'LINE 自行簽到',
+                '簽到方式': c.line_user_id.startsWith('elder_') ? 'QR Code 代簽' : 'LINE 簽到',
             }
         })
 
