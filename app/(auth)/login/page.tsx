@@ -229,13 +229,12 @@ export default function LoginPage() {
                             <div className="flex-1 border-t border-slate-200" />
                         </div>
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 if (!agreed) {
                                     setError('請先閱讀並同意免責聲明與服務條款')
                                     return
                                 }
-                                // 觸發 LIFF login，完成後會回到此頁自動登入
-                                const liffModule = require('@line/liff').default
+                                const liffModule = (await import('@line/liff')).default
                                 liffModule.login({ redirectUri: window.location.href })
                             }}
                             disabled={loading || !agreed}
