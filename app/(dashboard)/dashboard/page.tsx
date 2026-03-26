@@ -47,7 +47,6 @@ export default function DashboardPage() {
             const { count: eventCount } = await supabase
                 .from('events')
                 .select('*', { count: 'exact', head: true })
-                .eq('instructor_id', user.id)
 
             setStats({
                 elderCount: elderCount || 0,
