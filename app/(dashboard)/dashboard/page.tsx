@@ -3,19 +3,22 @@
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Users, Bot, ClipboardCheck, CheckCircle2, TrendingUp, Clock } from 'lucide-react'
+import { Users, Bot, ClipboardCheck, CheckCircle2, TrendingUp, Clock, CalendarCheck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface Stats {
     elderCount: number
     sessionCount: number
     preTestCount: number
     postTestCount: number
+    eventCount: number
 }
 
 export default function DashboardPage() {
-    const [stats, setStats] = useState<Stats>({ elderCount: 0, sessionCount: 0, preTestCount: 0, postTestCount: 0 })
+    const [stats, setStats] = useState<Stats>({ elderCount: 0, sessionCount: 0, preTestCount: 0, postTestCount: 0, eventCount: 0 })
     const [recentSessions, setRecentSessions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const router = useRouter()
 
     useEffect(() => {
         const fetchData = async () => {
@@ -40,11 +43,18 @@ export default function DashboardPage() {
             const preCount = sessions?.filter(s => s.test_type === 'pre').length || 0
             const postCount = sessions?.filter(s => s.test_type === 'post').length || 0
 
+            // 取得活動數量
+            const { count: eventCount } = await supabase
+                .from('events')
+                .select('*', { count: 'exact', head: true })
+                .eq('instructor_id', user.id)
+
             setStats({
                 elderCount: elderCount || 0,
                 sessionCount: sessions?.length || 0,
                 preTestCount: preCount,
                 postTestCount: postCount,
+                eventCount: eventCount || 0,
             })
             setRecentSessions(sessions || [])
             setLoading(false)
@@ -54,10 +64,11 @@ export default function DashboardPage() {
     }, [])
 
     const statsCards = [
-        { label: '管理長輩', value: stats.elderCount, icon: Users, color: 'from-teal-500 to-teal-600', iconBg: 'bg-teal-50 text-teal-600' },
-        { label: '分析次數', value: stats.sessionCount, icon: Bot, color: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-50 text-blue-600' },
-        { label: '前測完成', value: stats.preTestCount, icon: ClipboardCheck, color: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-50 text-amber-600' },
-        { label: '後測完成', value: stats.postTestCount, icon: CheckCircle2, color: 'from-emerald-500 to-emerald-600', iconBg: 'bg-emerald-50 text-emerald-600' },
+        { label: '管理長輩', value: stats.elderCount, icon: Users, color: 'from-teal-500 to-teal-600', iconBg: 'bg-teal-50 text-teal-600', href: '/elders' },
+        { label: '辦理活動', value: stats.eventCount, icon: CalendarCheck, color: 'from-violet-500 to-violet-600', iconBg: 'bg-violet-50 text-violet-600', href: '/events' },
+        { label: '分析次數', value: stats.sessionCount, icon: Bot, color: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-50 text-blue-600', href: null },
+        { label: '前測完成', value: stats.preTestCount, icon: ClipboardCheck, color: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-50 text-amber-600', href: null },
+        { label: '後測完成', value: stats.postTestCount, icon: CheckCircle2, color: 'from-emerald-500 to-emerald-600', iconBg: 'bg-emerald-50 text-emerald-600', href: null },
     ]
 
     return (
@@ -74,9 +85,13 @@ export default function DashboardPage() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 {statsCards.map((card, i) => (
-                    <div key={i} className="glass-card p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                    <div
+                        key={i}
+                        className={`glass-card p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform ${card.href ? 'cursor-pointer' : ''}`}
+                        onClick={() => card.href && router.push(card.href)}
+                    >
                         <div className={`absolute top-0 right-0 w-20 h-20 rounded-bl-[40px] bg-gradient-to-br ${card.color} opacity-10 group-hover:opacity-20 transition-opacity`} />
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${card.iconBg}`}>
                             <card.icon className="w-5 h-5" />
