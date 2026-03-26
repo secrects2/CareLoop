@@ -22,6 +22,7 @@ interface Elder {
     education_level: string | null
     blood_pressure: string | null
     pulse: number | null
+    line_picture_url: string | null
 }
 
 interface Session {
@@ -286,8 +287,13 @@ export default function ElderDetailPage() {
                     <button onClick={() => router.push('/elders')} className="text-[#666] hover:text-[#333] transition-colors">
                         ← 返回
                     </button>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold text-white ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
-                        {elder.name[0]}
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold text-white shrink-0 overflow-hidden ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
+                        {elder.line_picture_url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={elder.line_picture_url} alt={elder.name} className="w-full h-full object-cover" />
+                        ) : (
+                            elder.name[0]
+                        )}
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-[#333]">{elder.name}</h1>

@@ -61,6 +61,7 @@ export async function POST(request: Request) {
                     gender: null,
                     birth_date: null,
                     notes: `由 LINE 簽到自動建檔`,
+                    line_picture_url: info.pictureUrl,
                 })
             }
         }

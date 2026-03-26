@@ -17,9 +17,9 @@ interface Elder {
     phone: string | null
     education_level: string | null
     blood_pressure: string | null
-    pulse: number | null
     chronic_diseases: string[] | null
     created_at: string
+    line_picture_url: string | null
     session_count?: number
 }
 
@@ -319,8 +319,13 @@ export default function EldersPage() {
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold text-slate-800 ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
-                                        {elder.name[0]}
+                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold text-slate-800 shrink-0 overflow-hidden ${elder.gender === 'female' ? 'bg-pink-600/60' : 'bg-blue-600/60'}`}>
+                                        {elder.line_picture_url ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img src={elder.line_picture_url} alt={elder.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            elder.name[0]
+                                        )}
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-slate-800 group-hover:text-primary-400 transition-colors">{elder.name}</h3>
