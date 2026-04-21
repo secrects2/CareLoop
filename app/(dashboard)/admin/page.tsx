@@ -444,7 +444,7 @@ export default function AdminPage() {
                             {instructors.map((instructor) => (
                                 <div
                                     key={instructor.id}
-                                    className={`flex items-center justify-between p-4 rounded-xl transition-colors ${instructor.is_active ? 'bg-[#f5f5f5] hover:bg-[#f0f0f0]' : 'bg-red-50 border border-red-200'
+                                    className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl transition-colors ${instructor.is_active ? 'bg-[#f5f5f5] hover:bg-[#f0f0f0]' : 'bg-red-50 border border-red-200'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -592,7 +592,7 @@ export default function AdminPage() {
                                 return (
                                     <div
                                         key={instructor.id}
-                                        className={`flex items-center justify-between p-4 rounded-xl transition-colors ${
+                                        className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl transition-colors ${
                                             instructor.role === 'super_admin'
                                                 ? 'bg-rose-50/50 border border-rose-200'
                                                 : instructor.role === 'sub_admin'
