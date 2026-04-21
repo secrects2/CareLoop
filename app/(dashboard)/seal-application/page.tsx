@@ -255,7 +255,21 @@ export default function SealApplicationPage() {
                 setForm(f => ({ ...f, seal_type: '', purpose: '', return_date: '', borrow_date: new Date().toISOString().slice(0, 10) }))
                 setUploadedFiles([])
                 fetchApplications()
-                if (status === 'submitted') setActiveView('list')
+                if (status === 'submitted') {
+                    setActiveView('list')
+                    fetch('/api/line/notify-seal', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'submitted',
+                            applicantName: form.applicant_name,
+                            department: form.department,
+                            sealType: form.seal_type,
+                            borrowDate: form.borrow_date,
+                            purpose: form.purpose,
+                            applicantId: user.id
+                        })
+                    }).catch(err => console.error('LINE Notify Error:', err))
+                }
             }
         } finally {
             setSubmitting(false)
@@ -268,6 +282,40 @@ export default function SealApplicationPage() {
         const { error } = await supabase.from('seal_applications').delete().eq('id', id)
         if (error) { toast.error('刪除失敗: ' + error.message) }
         else { toast.success('已刪除'); fetchApplications() }
+    }
+
+    const handleReviewAction = async (appId: string, applicantId: string, actionDesc: 'approved' | 'rejected', sealType: string, borrowDate: string) => {
+        const comment = prompt(actionDesc === 'approved' ? '您可以選填給申請人的核准意見：' : '請務必填寫駁回理由：')
+        if (actionDesc === 'rejected' && (!comment || !comment.trim())) {
+            toast.error('駁回必須填寫理由')
+            return
+        }
+        
+        const supabase = createClient()
+        const { error } = await supabase.from('seal_applications')
+            .update({ status: actionDesc, reviewer_comment: comment || null, updated_at: new Date().toISOString() })
+            .eq('id', appId)
+            
+        if (error) {
+            toast.error('操作失敗: ' + error.message)
+            return
+        }
+        
+        toast.success(actionDesc === 'approved' ? '已核准' : '已駁回')
+        logActivity(actionDesc === 'approved' ? '核准用印申請' : '駁回用印申請', `申請ID: ${appId}`, 'seal_application')
+        fetchApplications()
+
+        fetch('/api/line/notify-seal', {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'reviewed',
+                applicantId,
+                sealType,
+                borrowDate,
+                status: actionDesc,
+                comment: comment || null
+            })
+        }).catch(err => console.error('Review LINE Notify Error:', err))
     }
 
     const getStatusLabel = (status: string) => {
@@ -433,6 +481,7 @@ export default function SealApplicationPage() {
                                         <th className="text-left px-4 py-3 text-[#888] font-medium text-xs">用印文件</th>
                                         <th className="text-left px-4 py-3 text-[#888] font-medium text-xs">印章類型</th>
                                         <th className="text-left px-4 py-3 text-[#888] font-medium text-xs">狀態</th>
+                                        <th className="text-right px-4 py-3 text-[#888] font-medium text-xs">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -484,6 +533,24 @@ export default function SealApplicationPage() {
                                                 <span className="whitespace-nowrap">{app.seal_type}</span>
                                             </td>
                                             <td className="px-4 py-3">{getStatusBadge(app.status)}</td>
+                                            <td className="px-4 py-3 text-xs text-right whitespace-nowrap">
+                                                {app.status === 'submitted' ? (
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button 
+                                                            onClick={() => handleReviewAction(app.id, app.applicant_id, 'approved', app.seal_type, app.borrow_date)}
+                                                            className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors font-medium border border-emerald-200"
+                                                        >
+                                                            核准
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleReviewAction(app.id, app.applicant_id, 'rejected', app.seal_type, app.borrow_date)}
+                                                            className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors font-medium border border-red-200"
+                                                        >
+                                                            駁回
+                                                        </button>
+                                                    </div>
+                                                ) : <span className="text-[#aaa]">--</span>}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

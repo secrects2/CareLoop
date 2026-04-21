@@ -169,3 +169,191 @@ export async function sendReminderCard(
         },
     ])
 }
+
+/**
+ * 發送「用印申請待審核」提醒（Flex Message 精美卡片）
+ */
+export async function sendSealApplicationCard(
+    lineUserId: string,
+    options: {
+        applicantName: string
+        department: string
+        sealType: string
+        borrowDate: string
+        purpose: string
+        liffUrl?: string
+    }
+): Promise<{ success: boolean; error?: string }> {
+    const { applicantName, department, sealType, borrowDate, purpose, liffUrl } = options
+
+    const flexContent: Record<string, unknown> = {
+        type: 'bubble',
+        size: 'kilo',
+        header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#059669', // Emerald 600
+            paddingAll: '15px',
+            contents: [
+                {
+                    type: 'text',
+                    text: '📋 新的用印申請待審核',
+                    color: '#FFFFFF',
+                    weight: 'bold',
+                    size: 'md',
+                },
+            ],
+        },
+        body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            paddingAll: '15px',
+            contents: [
+                {
+                    type: 'text',
+                    text: `申請人：${applicantName} (${department})`,
+                    weight: 'bold',
+                    size: 'md',
+                },
+                {
+                    type: 'text',
+                    text: `借印日期：${borrowDate}`,
+                    size: 'sm',
+                    color: '#888888',
+                },
+                {
+                    type: 'text',
+                    text: `印章類型：${sealType}`,
+                    size: 'sm',
+                    color: '#333333',
+                },
+                {
+                    type: 'text',
+                    text: `用印事宜：${purpose}`,
+                    size: 'sm',
+                    color: '#666666',
+                    wrap: true,
+                },
+            ],
+        },
+        footer: liffUrl ? {
+            type: 'box',
+            layout: 'vertical',
+            paddingAll: '15px',
+            contents: [
+                {
+                    type: 'button',
+                    action: {
+                        type: 'uri',
+                        label: '前往系統審核',
+                        uri: liffUrl,
+                    },
+                    style: 'primary',
+                    color: '#059669',
+                },
+            ],
+        } : undefined,
+    }
+
+    return sendPushMessage(lineUserId, [
+        {
+            type: 'flex',
+            altText: `📋 收到來自 ${applicantName} 的用印申請待審核`,
+            contents: flexContent,
+        },
+    ])
+}
+
+/**
+ * 發送「用印申請審核結果」提醒給申請人（Flex Message 精美卡片）
+ */
+export async function sendSealStatusCard(
+    lineUserId: string,
+    options: {
+        sealType: string
+        borrowDate: string
+        status: 'approved' | 'rejected'
+        comment: string | null
+        liffUrl?: string
+    }
+): Promise<{ success: boolean; error?: string }> {
+    const { sealType, borrowDate, status, comment, liffUrl } = options
+
+    const isApproved = status === 'approved'
+    const color = isApproved ? '#2563EB' : '#DC2626' // Blue for approved, Red for rejected
+    const titleText = isApproved ? '✅ 用印申請已核准' : '❌ 用印申請已駁回'
+
+    const flexContent: Record<string, unknown> = {
+        type: 'bubble',
+        size: 'kilo',
+        header: {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: color,
+            paddingAll: '15px',
+            contents: [
+                {
+                    type: 'text',
+                    text: titleText,
+                    color: '#FFFFFF',
+                    weight: 'bold',
+                    size: 'md',
+                },
+            ],
+        },
+        body: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'md',
+            paddingAll: '15px',
+            contents: [
+                {
+                    type: 'text',
+                    text: `印章類型：${sealType}`,
+                    weight: 'bold',
+                    size: 'md',
+                },
+                {
+                    type: 'text',
+                    text: `借印日期：${borrowDate}`,
+                    size: 'sm',
+                    color: '#888888',
+                },
+                {
+                    type: 'text',
+                    text: comment ? `審核意見：${comment}` : (isApproved ? '審核意見：無 (可前往用印)' : '審核意見：無'),
+                    size: 'sm',
+                    color: isApproved ? '#2563EB' : '#DC2626',
+                    wrap: true,
+                    weight: 'bold',
+                },
+            ],
+        },
+        footer: liffUrl ? {
+            type: 'box',
+            layout: 'vertical',
+            paddingAll: '15px',
+            contents: [
+                {
+                    type: 'button',
+                    action: {
+                        type: 'uri',
+                        label: '查看我的申請',
+                        uri: liffUrl,
+                    },
+                    style: 'secondary',
+                    color: '#E5E7EB',
+                },
+            ],
+        } : undefined,
+    }
+
+    return sendPushMessage(lineUserId, [
+        {
+            type: 'flex',
+            altText: titleText,
+            contents: flexContent,
+        },
+    ])
+}
