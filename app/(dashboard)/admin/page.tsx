@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import { logActivity } from '@/lib/activity-log'
-import { Search, Download, RefreshCw, Filter, ShieldCheck, ShieldOff, Crown } from 'lucide-react'
+import { Search, Download, RefreshCw, Filter, ShieldCheck, ShieldOff, Crown, Plus, X, UserPlus } from 'lucide-react'
 import { ROLE_LABELS, ROLE_BADGE_STYLES, isSuperAdmin, type UserRole } from '@/lib/rbac'
 
 interface Instructor {
@@ -49,6 +49,22 @@ export default function AdminPage() {
     const [changingRole, setChangingRole] = useState<string | null>(null)
     const [changingDept, setChangingDept] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<'instructors' | 'logs' | 'roles'>('instructors')
+
+    // === 新增指派狀態 ===
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [addModalSearch, setAddModalSearch] = useState('')
+    const [addModalTargetId, setAddModalTargetId] = useState('')
+    const [addModalRole, setAddModalRole] = useState<UserRole>('sub_admin')
+    const [addModalDept, setAddModalDept] = useState('')
+    const [isAddingUser, setIsAddingUser] = useState(false)
+
+    const addCandidates = useMemo(() => {
+        if (!addModalSearch.trim()) return []
+        const kw = addModalSearch.toLowerCase()
+        return instructors.filter(i => 
+            (i.full_name?.toLowerCase().includes(kw) || i.email?.toLowerCase().includes(kw))
+        ).slice(0, 10)
+    }, [instructors, addModalSearch])
 
     // === 篩選狀態 ===
     const [filterUser, setFilterUser] = useState('')
@@ -176,6 +192,32 @@ export default function AdminPage() {
             fetchInstructors()
         }
         setChangingDept(null)
+    }
+
+    // === 新增指派人員至角色 ===
+    const handleAddAssignment = async () => {
+        if (!addModalTargetId) return toast.error('請先選擇人員')
+        setIsAddingUser(true)
+        const target = instructors.find(i => i.id === addModalTargetId)
+        
+        const supabase = createClient()
+        const { error } = await supabase
+            .from('profiles')
+            .update({ role: addModalRole, organization: addModalDept || null })
+            .eq('id', addModalTargetId)
+
+        if (error) {
+            toast.error('指派失敗: ' + error.message)
+        } else {
+            toast.success(`已將 ${target?.full_name} 指派為 ${ROLE_LABELS[addModalRole as UserRole] || addModalRole}`)
+            logActivity('新增指派', `將 ${target?.full_name} 指派為 ${ROLE_LABELS[addModalRole as UserRole] || addModalRole}`, 'profile', addModalTargetId)
+            fetchInstructors()
+            setIsAddModalOpen(false)
+            setAddModalTargetId('')
+            setAddModalSearch('')
+            setAddModalDept('')
+        }
+        setIsAddingUser(false)
     }
 
     const activeCount = instructors.filter(i => i.is_active).length
@@ -458,9 +500,20 @@ export default function AdminPage() {
                 <div className="glass-card p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="section-title">角色管理</h2>
-                        <div className="flex items-center gap-2 text-xs text-[#888]">
-                            <Crown className="w-3.5 h-3.5 text-amber-500" />
-                            共 {instructors.length} 位成員
+                        <div className="flex items-center gap-3">
+                            <div className="hidden sm:flex items-center gap-2 text-xs text-[#888]">
+                                <Crown className="w-3.5 h-3.5 text-amber-500" />
+                                共 {instructors.length} 位成員
+                            </div>
+                            {currentUserRole === 'super_admin' && (
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+                                >
+                                    <UserPlus className="w-4 h-4" />
+                                    加入人員
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -774,6 +827,122 @@ export default function AdminPage() {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ================================================================ */}
+            {/* Modal: 新增指派 (加入人員) */}
+            {/* ================================================================ */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                <UserPlus className="w-5 h-5 text-teal-600" />
+                                加入現有人員至特定角色
+                            </h3>
+                            <button onClick={() => setIsAddModalOpen(false)} title="關閉" aria-label="關閉" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-5 overflow-y-auto space-y-5 flex-1">
+                            {/* 第一步：搜尋人員 */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 block">
+                                    <span className="text-rose-500 mr-1">*</span>搜尋欲加入的人員
+                                </label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={addModalSearch}
+                                        onChange={e => {
+                                            setAddModalSearch(e.target.value)
+                                            setAddModalTargetId('')
+                                        }}
+                                        placeholder="請輸入姓名或 Email 搜尋 (至少1字)"
+                                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all outline-none"
+                                    />
+                                </div>
+                                {addModalSearch.trim().length > 0 && (
+                                    <div className="mt-2 border border-gray-100 rounded-xl max-h-40 overflow-y-auto shadow-inner bg-gray-50/50">
+                                        {addCandidates.length > 0 ? (
+                                            addCandidates.map(c => (
+                                                <button
+                                                    key={c.id}
+                                                    onClick={() => setAddModalTargetId(c.id)}
+                                                    className={`w-full text-left px-3 py-2 text-sm flex flex-col border-b border-gray-100 last:border-0 transition-colors ${addModalTargetId === c.id ? 'bg-teal-50 border-teal-100' : 'hover:bg-gray-100'}`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={`font-medium ${addModalTargetId === c.id ? 'text-teal-700' : 'text-gray-800'}`}>{c.full_name}</span>
+                                                        <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-100">{ROLE_LABELS[c.role as UserRole] || c.role}</span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500 mt-0.5">{c.email}</span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="p-3 text-center text-sm text-gray-500">找不到符合的人員</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 第二步：選擇角色 */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 block">
+                                    <span className="text-rose-500 mr-1">*</span>指派角色
+                                </label>
+                                <select
+                                    value={addModalRole}
+                                    onChange={e => setAddModalRole(e.target.value as UserRole)}
+                                    title="指派角色"
+                                    className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
+                                >
+                                    <option value="super_admin">👑 最高管理員</option>
+                                    <option value="sub_admin">🛡️ 子管理員</option>
+                                    <option value="instructor">👤 指導員</option>
+                                    <option value="employee">🏢 惠生員工</option>
+                                </select>
+                            </div>
+
+                            {/* 第三步：選擇部門 */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700 block">所屬部門 (選填)</label>
+                                <select
+                                    value={addModalDept}
+                                    onChange={e => setAddModalDept(e.target.value)}
+                                    title="選擇部門"
+                                    className="w-full px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
+                                >
+                                    <option value="">( 無部門 )</option>
+                                    {DEPARTMENTS.map(dept => (
+                                        <option key={dept} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleAddAssignment}
+                                disabled={!addModalTargetId || isAddingUser}
+                                className="px-5 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 focus:ring-4 focus:ring-teal-500/20 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                            >
+                                {isAddingUser ? (
+                                    <>處理中...</>
+                                ) : (
+                                    <>確認加入</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
