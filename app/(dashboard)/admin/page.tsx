@@ -59,11 +59,11 @@ export default function AdminPage() {
     const [isAddingUser, setIsAddingUser] = useState(false)
 
     const addCandidates = useMemo(() => {
-        if (!addModalSearch.trim()) return []
+        if (!addModalSearch.trim()) return instructors.slice(0, 50)
         const kw = addModalSearch.toLowerCase()
         return instructors.filter(i => 
             (i.full_name?.toLowerCase().includes(kw) || i.email?.toLowerCase().includes(kw))
-        ).slice(0, 10)
+        ).slice(0, 50)
     }, [instructors, addModalSearch])
 
     // === 篩選狀態 ===
@@ -861,31 +861,30 @@ export default function AdminPage() {
                                             setAddModalSearch(e.target.value)
                                             setAddModalTargetId('')
                                         }}
-                                        placeholder="請輸入姓名或 Email 搜尋 (至少1字)"
+                                        placeholder="搜尋姓名或 Email..."
                                         className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all outline-none"
                                     />
                                 </div>
-                                {addModalSearch.trim().length > 0 && (
-                                    <div className="mt-2 border border-gray-100 rounded-xl max-h-40 overflow-y-auto shadow-inner bg-gray-50/50">
-                                        {addCandidates.length > 0 ? (
-                                            addCandidates.map(c => (
-                                                <button
-                                                    key={c.id}
-                                                    onClick={() => setAddModalTargetId(c.id)}
-                                                    className={`w-full text-left px-3 py-2 text-sm flex flex-col border-b border-gray-100 last:border-0 transition-colors ${addModalTargetId === c.id ? 'bg-teal-50 border-teal-100' : 'hover:bg-gray-100'}`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <span className={`font-medium ${addModalTargetId === c.id ? 'text-teal-700' : 'text-gray-800'}`}>{c.full_name}</span>
-                                                        <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-100">{ROLE_LABELS[c.role as UserRole] || c.role}</span>
-                                                    </div>
-                                                    <span className="text-xs text-gray-500 mt-0.5">{c.email}</span>
-                                                </button>
-                                            ))
-                                        ) : (
-                                            <div className="p-3 text-center text-sm text-gray-500">找不到符合的人員</div>
-                                        )}
-                                    </div>
-                                )}
+                                
+                                <div className="mt-2 border border-gray-100 rounded-xl max-h-52 overflow-y-auto shadow-inner bg-gray-50/50">
+                                    {addCandidates.length > 0 ? (
+                                        addCandidates.map(c => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => setAddModalTargetId(c.id)}
+                                                className={`w-full text-left px-3 py-2 text-sm flex flex-col border-b border-gray-100 last:border-0 transition-colors ${addModalTargetId === c.id ? 'bg-teal-50 border-teal-100' : 'hover:bg-gray-100'}`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`font-medium ${addModalTargetId === c.id ? 'text-teal-700' : 'text-gray-800'}`}>{c.full_name}</span>
+                                                    <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-100">{ROLE_LABELS[c.role as UserRole] || c.role}</span>
+                                                </div>
+                                                <span className="text-xs text-gray-500 mt-0.5">{c.email}</span>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 text-center text-sm text-gray-500">找不到符合的人員</div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* 第二步：選擇角色 */}
