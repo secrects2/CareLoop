@@ -28,14 +28,26 @@ interface ActivityLog {
     profiles: { full_name: string; email: string } | null
 }
 
+// 借印部門選項 (共用)
+const DEPARTMENTS = [
+    '西螺店',
+    '虎尾店',
+    '北斗店',
+    '財會課',
+    '文元店',
+    '延平店',
+]
+
 export default function AdminPage() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+    const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null)
     const [instructors, setInstructors] = useState<Instructor[]>([])
     const [logs, setLogs] = useState<ActivityLog[]>([])
     const [loading, setLoading] = useState(true)
     const [logsLoading, setLogsLoading] = useState(true)
     const [toggling, setToggling] = useState<string | null>(null)
     const [changingRole, setChangingRole] = useState<string | null>(null)
+    const [changingDept, setChangingDept] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<'instructors' | 'logs' | 'roles'>('instructors')
 
     // === 篩選狀態 ===
@@ -44,10 +56,22 @@ export default function AdminPage() {
     const [filterDateFrom, setFilterDateFrom] = useState('')
     const [filterDateTo, setFilterDateTo] = useState('')
 
+    // === 角色管理篩選 ===
+    const [roleSearchKeyword, setRoleSearchKeyword] = useState('')
+    const [roleFilterRole, setRoleFilterRole] = useState('')
+
     const fetchInstructors = async () => {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (user) setCurrentUserId(user.id)
+        if (user) {
+            setCurrentUserId(user.id)
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+            if (profile) {
+                const role = profile.role as UserRole
+                setCurrentUserRole(role)
+                if (role !== 'super_admin') setActiveTab('roles')
+            }
+        }
 
         const { data, error } = await supabase
             .from('profiles')
@@ -111,10 +135,8 @@ export default function AdminPage() {
             toast.error('無法修改自己的角色')
             return
         }
-        if (currentRole === 'super_admin') {
-            toast.error('無法修改最高管理員的角色')
-            return
-        }
+        // 允許指派任何角色（包含 super_admin）
+        if (currentRole === newRole) return
 
         setChangingRole(id)
         const supabase = createClient()
@@ -136,9 +158,40 @@ export default function AdminPage() {
         setChangingRole(null)
     }
 
+    // === 變更部門 ===
+    const changeDept = async (id: string, name: string, newDept: string) => {
+        setChangingDept(id)
+        const supabase = createClient()
+        const { error } = await supabase
+            .from('profiles')
+            .update({ organization: newDept })
+            .eq('id', id)
+
+        if (error) {
+            toast.error('更換部門失敗: ' + error.message)
+        } else {
+            toast.success(`已將 ${name} 指派至 ${newDept || '無部門'}`)
+            logActivity('變更部門', `將 ${name} 歸屬至 ${newDept || '無部門'}`, 'profile', id)
+            fetchInstructors()
+        }
+        setChangingDept(null)
+    }
+
     const activeCount = instructors.filter(i => i.is_active).length
     const disabledCount = instructors.filter(i => !i.is_active).length
     const subAdminCount = instructors.filter(i => i.role === 'sub_admin').length
+
+    // === 角色管理篩選後列表 ===
+    const filteredRoleList = useMemo(() => {
+        return instructors.filter(i => {
+            if (roleFilterRole && i.role !== roleFilterRole) return false
+            if (roleSearchKeyword) {
+                const kw = roleSearchKeyword.toLowerCase()
+                if (!i.full_name?.toLowerCase().includes(kw) && !i.email?.toLowerCase().includes(kw)) return false
+            }
+            return true
+        })
+    }, [instructors, roleSearchKeyword, roleFilterRole])
 
     // === 篩選後的紀錄 ===
     const uniqueUsers = useMemo(() => {
@@ -282,35 +335,41 @@ export default function AdminPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 flex-wrap">
-                <button
-                    onClick={() => setActiveTab('instructors')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'instructors'
-                        ? 'bg-teal-500 text-white'
-                        : 'bg-[#f5f5f5] text-[#888] hover:bg-[#eee]'
-                        }`}
-                >
-                    👥 帳號管理
-                </button>
-                <button
-                    onClick={() => setActiveTab('roles')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'roles'
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-[#f5f5f5] text-[#888] hover:bg-[#eee]'
-                        }`}
-                >
-                    🛡️ 角色管理
-                </button>
-                <button
-                    onClick={() => setActiveTab('logs')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'logs'
-                        ? 'bg-teal-500 text-white'
-                        : 'bg-[#f5f5f5] text-[#888] hover:bg-[#eee]'
-                        }`}
-                >
-                    📋 操作紀錄
-                </button>
-            </div>
+            {currentUserRole === 'super_admin' ? (
+                <div className="flex gap-2 flex-wrap mb-6 p-1 bg-[#f5f5f5] rounded-2xl w-fit">
+                    <button
+                        onClick={() => setActiveTab('instructors')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'instructors'
+                            ? 'bg-teal-500 text-white shadow-sm'
+                            : 'bg-transparent text-[#888] hover:text-[#333]'
+                            }`}
+                    >
+                        👥 帳號管理
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('roles')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'roles'
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : 'bg-transparent text-[#888] hover:text-[#333]'
+                            }`}
+                    >
+                        🛡️ 角色與部門管理
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('logs')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'logs'
+                            ? 'bg-teal-500 text-white shadow-sm'
+                            : 'bg-transparent text-[#888] hover:text-[#333]'
+                            }`}
+                    >
+                        📋 操作紀錄
+                    </button>
+                </div>
+            ) : (
+                <div className="flex gap-2 mb-6">
+                    <h2 className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-medium shadow-sm">🏢 組織與成員管理</h2>
+                </div>
+            )}
 
             {/* ================================================================ */}
             {/* Tab: 帳號管理 (啟用/停用) */}
@@ -393,65 +452,93 @@ export default function AdminPage() {
                         <h2 className="section-title">角色管理</h2>
                         <div className="flex items-center gap-2 text-xs text-[#888]">
                             <Crown className="w-3.5 h-3.5 text-amber-500" />
-                            僅最高管理員可指派角色
+                            共 {instructors.length} 位成員
                         </div>
                     </div>
 
-                    {/* 角色說明卡 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                        <div className="rounded-xl border-2 border-rose-200 bg-rose-50/50 p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">👑</span>
-                                <span className="font-bold text-rose-700 text-sm">最高管理員</span>
-                            </div>
-                            <p className="text-xs text-rose-600/80">可管理所有帳號、角色、停用/啟用、查看操作紀錄</p>
+                    {/* 角色統計卡 */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                        {[
+                            { role: 'super_admin', emoji: '👑', label: '最高管理員', border: 'border-rose-200', bg: 'bg-rose-50/50', text: 'text-rose-700' },
+                            { role: 'sub_admin', emoji: '🛡️', label: '子管理員', border: 'border-amber-200', bg: 'bg-amber-50/50', text: 'text-amber-700' },
+                            { role: 'instructor', emoji: '👤', label: '指導員', border: 'border-slate-200', bg: 'bg-slate-50/50', text: 'text-slate-600' },
+                            { role: 'employee', emoji: '🏢', label: '惠生員工', border: 'border-sky-200', bg: 'bg-sky-50/50', text: 'text-sky-600' },
+                        ].map(card => (
+                            <button
+                                key={card.role}
+                                onClick={() => setRoleFilterRole(prev => prev === card.role ? '' : card.role)}
+                                className={`rounded-xl border-2 ${card.border} ${card.bg} p-3 text-left transition-all ${roleFilterRole === card.role ? 'ring-2 ring-offset-1 ring-blue-400' : 'hover:opacity-80'}`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-base">{card.emoji}</span>
+                                        <span className={`font-bold ${card.text} text-xs`}>{card.label}</span>
+                                    </div>
+                                    <span className={`text-lg font-bold ${card.text}`}>{instructors.filter(i => i.role === card.role).length}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 搜尋 + 篩選 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#aaa]" />
+                            <input
+                                type="text"
+                                value={roleSearchKeyword}
+                                onChange={e => setRoleSearchKeyword(e.target.value)}
+                                placeholder="搜尋姓名或 Email..."
+                                title="搜尋成員"
+                                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#f5f5f5] border border-[#eee] text-[#333] text-sm focus:border-blue-500 focus:outline-none placeholder-[#aaa]"
+                            />
                         </div>
-                        <div className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">🛡️</span>
-                                <span className="font-bold text-amber-700 text-sm">子管理員</span>
-                            </div>
-                            <p className="text-xs text-amber-600/80">可管理用印申請數據、匯出報表，可申請用印</p>
-                        </div>
-                        <div className="rounded-xl border-2 border-slate-200 bg-slate-50/50 p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">👤</span>
-                                <span className="font-bold text-slate-600 text-sm">指導員</span>
-                            </div>
-                            <p className="text-xs text-slate-500">一般使用者，可使用所有檢測功能但無管理權限</p>
-                        </div>
-                        <div className="rounded-xl border-2 border-sky-200 bg-sky-50/50 p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">🏢</span>
-                                <span className="font-bold text-sky-600 text-sm">惠生員工</span>
-                            </div>
-                            <p className="text-xs text-sky-500">可申請用印，僅可瞧看儀表板與操作說明</p>
+                        <div className="relative">
+                            <select
+                                value={roleFilterRole}
+                                onChange={e => setRoleFilterRole(e.target.value)}
+                                title="篩選角色"
+                                className="w-full px-3 py-2 rounded-lg bg-[#f5f5f5] border border-[#eee] text-[#333] text-sm focus:border-blue-500 focus:outline-none appearance-none"
+                            >
+                                <option value="">全部角色</option>
+                                <option value="super_admin">👑 最高管理員</option>
+                                <option value="sub_admin">🛡️ 子管理員</option>
+                                <option value="instructor">👤 指導員</option>
+                                <option value="employee">🏢 惠生員工</option>
+                            </select>
+                            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#aaa] pointer-events-none" />
                         </div>
                     </div>
 
-                    {/* 角色列表 */}
+                    <p className="text-xs text-[#aaa] mb-3">顯示 <strong className="text-[#333]">{filteredRoleList.length}</strong> / {instructors.length} 位成員</p>
+
+                    {/* 成員列表 */}
                     {loading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => (
                                 <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />
                             ))}
                         </div>
+                    ) : filteredRoleList.length === 0 ? (
+                        <div className="text-center py-8 text-[#888]">
+                            <p className="text-3xl mb-2">🔍</p>
+                            <p className="text-sm">沒有符合條件的成員</p>
+                        </div>
                     ) : (
                         <div className="space-y-2">
-                            {instructors.map((instructor) => {
+                            {filteredRoleList.map((instructor) => {
                                 const isCurrentUser = instructor.id === currentUserId
-                                const isSuperAdminUser = instructor.role === 'super_admin'
-                                const canModify = !isCurrentUser && !isSuperAdminUser
-
                                 return (
                                     <div
                                         key={instructor.id}
                                         className={`flex items-center justify-between p-4 rounded-xl transition-colors ${
-                                            isSuperAdminUser 
-                                                ? 'bg-rose-50/50 border border-rose-200' 
+                                            instructor.role === 'super_admin'
+                                                ? 'bg-rose-50/50 border border-rose-200'
                                                 : instructor.role === 'sub_admin'
                                                     ? 'bg-amber-50/50 border border-amber-200'
-                                                    : 'bg-[#f5f5f5] hover:bg-[#f0f0f0]'
+                                                    : instructor.role === 'employee'
+                                                        ? 'bg-sky-50/50 border border-sky-200'
+                                                        : 'bg-[#f5f5f5] hover:bg-[#f0f0f0]'
                                         }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -459,7 +546,7 @@ export default function AdminPage() {
                                                 <img src={instructor.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                                             ) : (
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                                                    isSuperAdminUser ? 'bg-rose-500' :
+                                                    instructor.role === 'super_admin' ? 'bg-rose-500' :
                                                     instructor.role === 'sub_admin' ? 'bg-amber-500' :
                                                     instructor.role === 'employee' ? 'bg-sky-500' : 'bg-teal-500'
                                                 }`}>
@@ -471,59 +558,60 @@ export default function AdminPage() {
                                                     <p className="text-[#333] font-medium">{instructor.full_name}</p>
                                                     <RoleBadge role={instructor.role} />
                                                     {isCurrentUser && (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-600 border border-blue-200">
-                                                            本人
-                                                        </span>
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-600 border border-blue-200">本人</span>
+                                                    )}
+                                                    {!instructor.is_active && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">已停用</span>
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-[#888]">{instructor.email}</p>
                                             </div>
                                         </div>
 
-                                        {/* 角色切換按鈕 */}
-                                        {canModify && (
-                                            <div className="flex gap-2 flex-wrap">
-                                                {/* employee → instructor */}
-                                                {instructor.role === 'employee' && (
-                                                    <button
-                                                        onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'instructor')}
+                                        <div className="flex gap-2 flex-wrap items-center">
+                                            {/* 部門選擇下拉 */}
+                                            <select
+                                                value={instructor.organization || ''}
+                                                onChange={e => changeDept(instructor.id, instructor.full_name, e.target.value)}
+                                                disabled={changingDept === instructor.id}
+                                                title={`設定 ${instructor.full_name} 的部門`}
+                                                className={`px-3 py-2 rounded-xl text-sm font-medium border transition-colors disabled:opacity-50 cursor-pointer min-w-[120px] ${
+                                                    changingDept === instructor.id ? 'animate-pulse' :
+                                                    instructor.organization ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-[#f5f5f5] border-[#ddd] text-[#555]'
+                                                }`}
+                                            >
+                                                <option value="">( 無部門 )</option>
+                                                {DEPARTMENTS.map(dept => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
+                                            </select>
+
+                                            {/* 角色選擇下拉 - 僅最高管理員 */}
+                                            {currentUserRole === 'super_admin' && (
+                                                !isCurrentUser ? (
+                                                    <select
+                                                        value={instructor.role}
+                                                        onChange={e => changeRole(instructor.id, instructor.full_name, instructor.role, e.target.value as UserRole)}
                                                         disabled={changingRole === instructor.id}
-                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors disabled:opacity-50"
+                                                        title={`指派 ${instructor.full_name} 的角色`}
+                                                        className={`px-3 py-2 rounded-xl text-sm font-medium border transition-colors disabled:opacity-50 cursor-pointer min-w-[140px] ${
+                                                            changingRole === instructor.id ? 'animate-pulse' :
+                                                            instructor.role === 'super_admin' ? 'bg-rose-50 border-rose-200 text-rose-700' :
+                                                            instructor.role === 'sub_admin' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                                                            instructor.role === 'employee' ? 'bg-sky-50 border-sky-200 text-sky-600' :
+                                                            'bg-[#f5f5f5] border-[#ddd] text-[#555]'
+                                                        }`}
                                                     >
-                                                        {changingRole === instructor.id ? '處理中...' : <><ShieldCheck className="w-4 h-4" /> 升為指導員</>}
-                                                    </button>
-                                                )}
-                                                {/* instructor → sub_admin or employee */}
-                                                {instructor.role === 'instructor' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'sub_admin')}
-                                                            disabled={changingRole === instructor.id}
-                                                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors disabled:opacity-50"
-                                                        >
-                                                            {changingRole === instructor.id ? '處理中...' : <><ShieldCheck className="w-4 h-4" /> 升為子管理員</>}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'employee')}
-                                                            disabled={changingRole === instructor.id}
-                                                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-200 transition-colors disabled:opacity-50"
-                                                        >
-                                                            {changingRole === instructor.id ? '處理中...' : <><ShieldOff className="w-4 h-4" /> 轉為惠生員工</>}
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {/* sub_admin → instructor */}
-                                                {instructor.role === 'sub_admin' && (
-                                                    <button
-                                                        onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'instructor')}
-                                                        disabled={changingRole === instructor.id}
-                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors disabled:opacity-50"
-                                                    >
-                                                        {changingRole === instructor.id ? '處理中...' : <><ShieldOff className="w-4 h-4" /> 降為指導員</>}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
+                                                        <option value="super_admin">👑 最高管理員</option>
+                                                        <option value="sub_admin">🛡️ 子管理員</option>
+                                                        <option value="instructor">👤 指導員</option>
+                                                        <option value="employee">🏢 惠生員工</option>
+                                                    </select>
+                                                ) : (
+                                                    <span className="text-xs text-[#aaa] italic whitespace-nowrap px-2">本人</span>
+                                                )
+                                            )}
+                                        </div>
                                     </div>
                                 )
                             })}

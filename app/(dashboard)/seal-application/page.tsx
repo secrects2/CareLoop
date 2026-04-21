@@ -9,14 +9,23 @@ import { type UserRole } from '@/lib/rbac'
 
 // 印章類型選項
 const SEAL_TYPES = [
-    '公司大章',
-    '公司大章（登記設立）',
-    '公司小章（發票章）',
-    '負責人章',
-    '負責人小章（登記設立）',
-    '負責人小章（一般便章）',
-    '統一發票專用章',
+    '公司大章(登記設立)',
+    '負責人小章(登記設立)',
+    '公司大章(一般便章)',
+    '負責人小章(一般便章)',
+    '發票章',
+    '銀行印鑑章',
     '其他',
+]
+
+// 借印部門選項
+const DEPARTMENTS = [
+    '西螺店',
+    '虎尾店',
+    '北斗店',
+    '財會課',
+    '文元店',
+    '延平店',
 ]
 
 interface SealApplication {
@@ -502,14 +511,18 @@ export default function SealApplicationPage() {
                             <label htmlFor="seal-department" className="block text-sm font-bold text-orange-600 mb-1.5">
                                 借印部門 <span className="text-red-500">*</span>
                             </label>
-                            <input
+                            <select
                                 id="seal-department"
-                                type="text"
+                                title="選擇借印部門"
                                 value={form.department}
                                 onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-                                placeholder="例：內勤"
-                                className="w-full px-4 py-3 rounded-xl bg-[#f9f9f9] border border-[#eee] text-[#333] text-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all"
-                            />
+                                className="w-full px-4 py-3 rounded-xl bg-[#f9f9f9] border border-[#eee] text-[#333] text-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 transition-all appearance-none"
+                            >
+                                <option value="">請選擇</option>
+                                {DEPARTMENTS.map(dept => (
+                                    <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* 借印人 */}
@@ -581,6 +594,15 @@ export default function SealApplicationPage() {
                             <label className="block text-sm font-bold text-[#555] mb-1.5">
                                 用印文件（拍照或電子檔）
                             </label>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept="image/*,.pdf,.doc,.docx"
+                                onChange={handleFileSelect}
+                                className="hidden"
+                                aria-label="選擇要上傳的文件"
+                            />
                             <div
                                 className="border-2 border-dashed border-[#ccc] rounded-xl p-4 bg-[#fafafa] hover:border-orange-300 hover:bg-orange-50/30 transition-colors cursor-pointer"
                                 onClick={() => fileInputRef.current?.click()}
@@ -589,15 +611,6 @@ export default function SealApplicationPage() {
                                 aria-label="上傳用印文件"
                                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
                             >
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    multiple
-                                    accept="image/*,.pdf,.doc,.docx"
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                    aria-label="選擇要上傳的文件"
-                                />
                                 <div className="flex items-center gap-3 text-sm text-[#888]">
                                     <Upload className="w-5 h-5 text-[#aaa]" />
                                     <span>上傳文件</span>

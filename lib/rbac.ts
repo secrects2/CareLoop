@@ -41,7 +41,7 @@ export const FEATURE_VISIBILITY: Record<string, UserRole[]> = {
   '/gait-analysis':      ['super_admin', 'sub_admin', 'instructor'],
   '/analysis':           ['super_admin', 'sub_admin', 'instructor'],
   '/guide':              ['super_admin', 'sub_admin', 'instructor', 'employee'],
-  '/admin':              ['super_admin'],                             // 僅最高管理員
+  '/admin':              ['super_admin', 'sub_admin'],                // 最高管理員 + 子管理員 (子管理員僅能管理部門)
   '/seal-application':   ['super_admin', 'sub_admin', 'employee'],     // 最高管理員 + 子管理員 + 惠生員工
   '/privacy':            ['super_admin', 'sub_admin', 'instructor', 'employee'],
   '/terms':              ['super_admin', 'sub_admin', 'instructor', 'employee'],
