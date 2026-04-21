@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { canAccessRoute } from '@/lib/rbac'
 
 export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request })
@@ -53,11 +54,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login?error=account_disabled', request.url))
     }
 
-    // 管理員頁面僅 admin 可存取
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        if (!profile || profile.role !== 'admin') {
-            return NextResponse.redirect(new URL('/dashboard', request.url))
-        }
+    // RBAC 路由保護：根據角色檢查是否可存取
+    const pathname = request.nextUrl.pathname
+    if (profile && !canAccessRoute(profile.role, pathname)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     return supabaseResponse
@@ -73,6 +73,10 @@ export const config = {
         '/ai-lab/:path*',
         '/events/:path*',
         '/gait-analysis/:path*',
+        '/locations/:path*',
+        '/subsidy/:path*',
+        '/guide/:path*',
+        '/seal-application/:path*',
         '/privacy',
         '/terms',
         '/contact',

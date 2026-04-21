@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
@@ -27,21 +27,13 @@ const AI_TESTS = [
         color: 'purple',
         features: ['足部空間幾何偵測', '防跌倒安全中斷', '肩膀傾斜監測'],
     },
-    {
-        id: 'posture',
-        icon: '🏋️',
-        title: '地板滾球姿勢分析',
-        subtitle: 'Floor Curling Posture Analysis',
-        description: '即時偵測地板滾球投擲姿勢，分析核心穩定性、關節角速度與代償動作。',
-        color: 'teal',
-        features: ['核心穩定角度', '關節角速度', '震顫偵測'],
-    },
+
 ]
 
 const COLOR_MAP: Record<string, { bg: string; border: string; hover: string; text: string }> = {
     blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/25', hover: 'hover:border-blue-500/50 hover:bg-blue-500/15', text: 'text-blue-400' },
     purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/25', hover: 'hover:border-purple-500/50 hover:bg-purple-500/15', text: 'text-purple-400' },
-    teal: { bg: 'bg-teal-500/10', border: 'border-teal-500/25', hover: 'hover:border-teal-500/50 hover:bg-teal-500/15', text: 'text-teal-400' },
+
 }
 
 export default function AiLabPage() {
@@ -68,29 +60,7 @@ export default function AiLabPage() {
         )
     }
 
-    if (activeTest === 'posture') {
-        // 地板滾球分析 — 導向既有的分析頁面
-        // 這裡用簡易版：開啟後鏡頭 + MediaPipe Pose 即時顯示
-        return (
-            <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
-                <div className="text-center space-y-4 p-6">
-                    <p className="text-6xl">🏋️</p>
-                    <h2 className="text-2xl font-bold text-slate-800">地板滾球姿勢分析</h2>
-                    <p className="text-slate-400 text-sm">
-                        請至「地板滾球分析」功能中選擇長者後使用完整分析功能。
-                        <br />
-                        此處提供的是獨立測試版本。
-                    </p>
-                    <button
-                        onClick={() => setActiveTest(null)}
-                        className="px-6 py-3 rounded-xl bg-slate-100 text-slate-800 font-medium hover:bg-slate-200 transition-colors"
-                    >
-                        ← 返回測試區
-                    </button>
-                </div>
-            </div>
-        )
-    }
+
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto">

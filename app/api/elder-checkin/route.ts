@@ -11,7 +11,7 @@ const supabaseAdmin = createClient(
 // Checks in an elder to an event (staff-assisted, no LINE required)
 export async function POST(request: NextRequest) {
     try {
-        const { elderId, eventId } = await request.json()
+        const { elderId, eventId, checkinMethod, deviceInfo } = await request.json()
 
         if (!elderId || !eventId) {
             return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 })
@@ -43,6 +43,28 @@ export async function POST(request: NextRequest) {
         // Check in using elder ID as line_user_id (prefixed to avoid collision)
         const elderLineId = `elder_${elderId}`
 
+        // 首先檢查是否已經簽到過
+        const { data: existing, error: existingError } = await supabaseAdmin
+            .from('event_checkins')
+            .select('*')
+            .eq('event_id', eventId)
+            .eq('line_user_id', elderLineId)
+            .maybeSingle()
+
+        if (existing) {
+            return NextResponse.json({
+                success: true,
+                alreadyCheckedIn: true,
+                checkin: existing,
+                event: {
+                    title: event.title,
+                    event_date: event.event_date,
+                    event_time: event.event_time,
+                    location: event.location,
+                },
+            })
+        }
+
         const { data: checkin, error: checkinError } = await supabaseAdmin
             .from('event_checkins')
             .insert({
@@ -50,33 +72,13 @@ export async function POST(request: NextRequest) {
                 line_user_id: elderLineId,
                 display_name: `${elder.name}（代簽）`,
                 picture_url: null,
+                checkin_method: checkinMethod || 'qr_proxy',
+                device_info: deviceInfo || null,
             })
             .select()
             .single()
 
         if (checkinError) {
-            // Handle duplicate
-            if (checkinError.code === '23505') {
-                const { data: existing } = await supabaseAdmin
-                    .from('event_checkins')
-                    .select('*')
-                    .eq('event_id', eventId)
-                    .eq('line_user_id', elderLineId)
-                    .single()
-
-                return NextResponse.json({
-                    success: true,
-                    alreadyCheckedIn: true,
-                    checkin: existing,
-                    event: {
-                        title: event.title,
-                        event_date: event.event_date,
-                        event_time: event.event_time,
-                        location: event.location,
-                    },
-                })
-            }
-
             return NextResponse.json({ error: '簽到失敗：' + checkinError.message }, { status: 500 })
         }
 

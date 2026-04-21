@@ -20,16 +20,24 @@ interface Elder {
     chronic_diseases: string[] | null
     created_at: string
     line_picture_url: string | null
+    location_id: string | null
     session_count?: number
+    location_name?: string | null
+}
+
+interface Location {
+    id: string
+    name: string
 }
 
 export default function EldersPage() {
     const [elders, setElders] = useState<Elder[]>([])
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
-    const [formData, setFormData] = useState({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', education_level: '', blood_pressure: '', pulse: '', chronic_diseases_input: '' })
+    const [formData, setFormData] = useState({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', education_level: '', chronic_diseases_input: '', location_id: '' })
     const [submitting, setSubmitting] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
+    const [locations, setLocations] = useState<Location[]>([])
     const searchParams = useSearchParams()
 
     // 當 URL 帶有 ?add=true 時自動展開新增表單
@@ -46,7 +54,7 @@ export default function EldersPage() {
 
         const { data } = await supabase
             .from('elders')
-            .select('*, analysis_sessions(id)')
+            .select('*, analysis_sessions(id), locations(name)')
             .eq('instructor_id', user.id)
             .order('created_at', { ascending: false })
 
@@ -54,12 +62,25 @@ export default function EldersPage() {
             setElders(data.map(e => ({
                 ...e,
                 session_count: (e.analysis_sessions as any[])?.length || 0,
+                location_name: (e.locations as any)?.name || null,
             })))
         }
         setLoading(false)
     }
 
-    useEffect(() => { fetchElders() }, [])
+    const fetchLocations = async () => {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+            .from('locations')
+            .select('id, name')
+            .eq('instructor_id', user.id)
+            .order('name')
+        if (data) setLocations(data)
+    }
+
+    useEffect(() => { fetchElders(); fetchLocations() }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -97,8 +118,7 @@ export default function EldersPage() {
                     id_number: formData.id_number.trim() || null,
                     phone: formData.phone.trim() || null,
                     education_level: formData.education_level || null,
-                    blood_pressure: formData.blood_pressure.trim() || null,
-                    pulse: formData.pulse ? parseInt(formData.pulse) : null,
+                    location_id: formData.location_id || null,
                 })
                 .select('id')
                 .single()
@@ -128,7 +148,7 @@ export default function EldersPage() {
             }
 
             logActivity('新增長輩', `姓名: ${formData.name.trim()}, 身分證: ${formData.id_number.trim()}`, 'elder')
-            setFormData({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', education_level: '', blood_pressure: '', pulse: '', chronic_diseases_input: '' })
+            setFormData({ name: '', gender: 'male', birth_date: '', notes: '', id_number: '', phone: '', education_level: '', chronic_diseases_input: '', location_id: '' })
             setShowForm(false)
             fetchElders()
         } catch (err: any) {
@@ -232,28 +252,6 @@ export default function EldersPage() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm text-slate-400 mb-1">血壓 (mmHg)</label>
-                            <input
-                                type="text"
-                                value={formData.blood_pressure}
-                                onChange={e => setFormData({ ...formData, blood_pressure: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
-                                placeholder="例：120/80"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm text-slate-400 mb-1">脈搏 (次/分)</label>
-                            <input
-                                type="number"
-                                value={formData.pulse}
-                                onChange={e => setFormData({ ...formData, pulse: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
-                                placeholder="例：72"
-                                min={30}
-                                max={200}
-                            />
-                        </div>
-                        <div>
                             <label className="block text-sm text-slate-400 mb-1">慢性疾病史</label>
                             <input
                                 type="text"
@@ -262,6 +260,20 @@ export default function EldersPage() {
                                 className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 placeholder="以頓號分隔，例：高血壓、糖尿病"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-1">據點</label>
+                            <select
+                                value={formData.location_id}
+                                onChange={e => setFormData({ ...formData, location_id: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 focus:border-primary-500 focus:outline-none transition-colors"
+                                title="據點"
+                            >
+                                <option value="">— 請選擇據點 —</option>
+                                {locations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="sm:col-span-2">
                             <label className="block text-sm text-slate-400 mb-1">備註</label>
@@ -334,6 +346,9 @@ export default function EldersPage() {
                                             {elder.birth_date && ` · ${elder.birth_date}`}
                                             {elder.id_number && ` · ${elder.id_number}`}
                                         </p>
+                                        {elder.location_name && (
+                                            <p className="text-xs text-violet-500 mt-0.5">📍 {elder.location_name}</p>
+                                        )}
                                     </div>
                                 </div>
                                 <svg className="w-5 h-5 text-slate-600 group-hover:text-slate-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">

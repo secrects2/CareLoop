@@ -35,37 +35,34 @@ export function isInLiff(): boolean {
     }
 }
 
-/** LIFF 是否已初始化 */
-let _initialized = false
+/** LIFF 初始化 Promise，避免 Race Condition */
+let _initPromise: Promise<boolean> | null = null
 
 /**
  * 初始化 LIFF
  * @returns 是否成功初始化
  */
-export async function initLiff(): Promise<boolean> {
-    if (_initialized) {
-        console.log('[LIFF] Already initialized, isLoggedIn:', liff.isLoggedIn())
-        return true
-    }
+export function initLiff(): Promise<boolean> {
+    if (_initPromise) return _initPromise
+
     if (!LIFF_ID) {
         console.warn('[LIFF] LIFF ID 未設定 (NEXT_PUBLIC_LIFF_ID)')
-        return false
+        return Promise.resolve(false)
     }
 
-    try {
-        console.log('[LIFF] Initializing with ID:', LIFF_ID)
-        console.log('[LIFF] URL params:', window.location.search)
-        await liff.init({ liffId: LIFF_ID })
-        _initialized = true
-        console.log('[LIFF] Init success, isLoggedIn:', liff.isLoggedIn(), 'isInClient:', liff.isInClient())
-        if (liff.isLoggedIn()) {
-            console.log('[LIFF] Access token:', liff.getAccessToken()?.substring(0, 20) + '...')
+    _initPromise = (async () => {
+        try {
+            console.log('[LIFF] Initializing with ID:', LIFF_ID)
+            await liff.init({ liffId: LIFF_ID })
+            console.log('[LIFF] Init success, isLoggedIn:', liff.isLoggedIn(), 'isInClient:', liff.isInClient())
+            return true
+        } catch (err) {
+            console.error('[LIFF] 初始化失敗:', err)
+            return false
         }
-        return true
-    } catch (err) {
-        console.error('[LIFF] 初始化失敗:', err)
-        return false
-    }
+    })()
+
+    return _initPromise
 }
 
 /**

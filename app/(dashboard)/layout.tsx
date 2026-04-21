@@ -5,7 +5,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
-import { LayoutDashboard, Users, ClipboardList, Target, FlaskConical, ShieldCheck, LogOut, BookOpen, CalendarCheck, Footprints, ChevronDown, Activity } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, ShieldCheck, LogOut, BookOpen, CalendarCheck, LifeBuoy, Home, MapPin, Stamp } from 'lucide-react'
+import { canAccessRoute, ROLE_LABELS, ROLE_BADGE_STYLES, type UserRole } from '@/lib/rbac'
 
 interface Profile {
     id: string
@@ -24,16 +25,10 @@ export default function DashboardLayout({
     const [user, setUser] = useState<User | null>(null)
     const [profile, setProfile] = useState<Profile | null>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [analysisOpen, setAnalysisOpen] = useState(false)
     const router = useRouter()
     const pathname = usePathname()
 
-    // 自動展開分析群組（如果當前頁面在分析群組內）
-    useEffect(() => {
-        if (pathname.startsWith('/analysis') || pathname.startsWith('/gait-analysis') || pathname.startsWith('/ai-lab')) {
-            setAnalysisOpen(true)
-        }
-    }, [pathname])
+
 
     useEffect(() => {
         const supabase = createClient()
@@ -64,28 +59,28 @@ export default function DashboardLayout({
         router.push('/login')
     }
 
-    // 主導航項目
-    const mainNavItems = [
+    const userRole = (profile?.role || 'instructor') as UserRole
+
+    // 主導航項目（根據角色過濾）
+    const allMainNavItems = [
         { href: '/dashboard', label: '儀表板', icon: LayoutDashboard, color: 'text-blue-500' },
         { href: '/elders', label: '長輩管理', icon: Users, color: 'text-violet-500' },
+        { href: '/locations', label: '據點管理', icon: MapPin, color: 'text-indigo-500' },
         { href: '/events', label: '活動簽到', icon: CalendarCheck, color: 'text-teal-500' },
+        { href: '/subsidy', label: '輔具導航', icon: LifeBuoy, color: 'text-rose-500' },
     ]
+    const mainNavItems = allMainNavItems.filter(item => canAccessRoute(userRole, item.href))
 
-    // 分析功能群組
-    const analysisNavItems = [
-        { href: '/analysis', label: '地板滾球分析', icon: Target, color: 'text-orange-500' },
-        { href: '/gait-analysis', label: '3D 步態分析', icon: Footprints, color: 'text-cyan-500' },
-        { href: '/ai-lab', label: 'AI 分析測試區', icon: FlaskConical, color: 'text-pink-500' },
-    ]
-
-    // 底部導航
-    const bottomNavItems = [
+    // 底部導航（根據角色過濾）
+    const allBottomNavItems = [
         { href: '/icope', label: 'ICOPE 評估', icon: ClipboardList, color: 'text-emerald-500' },
+        { href: '/seal-application', label: '用印申請', icon: Stamp, color: 'text-orange-500' },
         { href: '/guide', label: '操作說明', icon: BookOpen, color: 'text-amber-500' },
-        ...(profile?.role === 'admin' ? [{ href: '/admin', label: '管理員', icon: ShieldCheck, color: 'text-red-500' }] : []),
+        { href: '/admin', label: '管理員', icon: ShieldCheck, color: 'text-red-500' },
     ]
+    const bottomNavItems = allBottomNavItems.filter(item => canAccessRoute(userRole, item.href))
 
-    const isAnalysisActive = pathname.startsWith('/analysis') || pathname.startsWith('/gait-analysis') || pathname.startsWith('/ai-lab')
+
 
     if (!user) {
         return (
@@ -115,7 +110,7 @@ export default function DashboardLayout({
                         </div>
                         <div>
                             <h1 className="font-bold text-slate-800 text-sm leading-tight">惠生檢測平台</h1>
-                            <p className="text-xs text-slate-500">ICOPE & AI 分析</p>
+                            <p className="text-xs text-slate-500">ICOPE 檢測平台</p>
                         </div>
                     </div>
                 </div>
@@ -135,34 +130,7 @@ export default function DashboardLayout({
                         </Link>
                     ))}
 
-                    {/* Analysis group */}
-                    <div className="pt-1">
-                        <button
-                            onClick={() => setAnalysisOpen(!analysisOpen)}
-                            className={`sidebar-item w-full justify-between ${isAnalysisActive ? 'active' : ''}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Activity className="w-5 h-5 text-indigo-500" />
-                                <span>分析功能</span>
-                            </div>
-                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${analysisOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                        <div className={`overflow-hidden transition-all duration-200 ${analysisOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
-                            <div className="ml-3 pl-3 border-l-2 border-slate-200 space-y-0.5 mt-1">
-                                {analysisNavItems.map((item) => (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        onClick={() => setSidebarOpen(false)}
-                                        className={`sidebar-item text-sm ${pathname === item.href || pathname.startsWith(item.href + '/') ? 'active' : ''}`}
-                                    >
-                                        <item.icon className={`w-4 h-4 ${item.color}`} />
-                                        <span>{item.label}</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+
 
                     {/* Divider */}
                     <div className="pt-2 pb-1">
@@ -194,7 +162,12 @@ export default function DashboardLayout({
                             </div>
                         )}
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-800 truncate">{profile?.full_name || user?.user_metadata?.full_name || '指導員'}</p>
+                            <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-medium text-slate-800 truncate">{profile?.full_name || user?.user_metadata?.full_name || '指導員'}</p>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold border shrink-0 ${ROLE_BADGE_STYLES[userRole]}`}>
+                                    {ROLE_LABELS[userRole]}
+                                </span>
+                            </div>
                             <p className="text-xs text-slate-500 truncate">{profile?.email || user?.email}</p>
                         </div>
                     </div>
@@ -219,7 +192,7 @@ export default function DashboardLayout({
                     </button>
                 </header>
 
-                <div className="p-4 md:p-6 lg:p-8">
+                <div className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">
                     {children}
                 </div>
 
@@ -241,6 +214,37 @@ export default function DashboardLayout({
                         </p>
                     </div>
                 </footer>
+
+                {/* ── iOS-style Bottom Tab Bar ── */}
+                <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 lg:hidden">
+                    <div className="flex items-stretch justify-around px-2 pt-1.5 pb-[env(safe-area-inset-bottom,8px)]">
+                        {[
+                            { href: '/dashboard', label: '首頁', icon: Home },
+                            { href: '/elders', label: '長輩', icon: Users },
+                            { href: '/events', label: '簽到', icon: CalendarCheck },
+                            { href: '/subsidy', label: '輔具', icon: LifeBuoy },
+                            { href: '/guide', label: '說明', icon: BookOpen },
+                        ].filter(tab => canAccessRoute(userRole, tab.href)).map((tab) => {
+                            const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/')
+                            return (
+                                <Link
+                                    key={tab.href}
+                                    href={tab.href}
+                                    className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1.5 rounded-xl transition-colors ${
+                                        isActive
+                                            ? 'text-primary-600'
+                                            : 'text-slate-400 hover:text-slate-600'
+                                    }`}
+                                >
+                                    <tab.icon className={`w-[22px] h-[22px] ${isActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
+                                    <span className={`text-[10px] leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}>
+                                        {tab.label}
+                                    </span>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </nav>
             </main>
         </div>
     )

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -23,18 +23,29 @@ const TASK_CONFIG: Record<string, {
     'AD8': {
         icon: '🧠',
         title: 'AD8 認知量表',
-        description: '詢問長者或知情人以下 8 個問題，每項回答「是」得 1 分。',
+        description: '詢問長者或知情人（家屬）以下 8 個問題，每項回答「是」得 1 分。請由長者家屬回答。',
         fields: [
             { key: 'ad8_score', type: 'number', label: 'AD8 總分', hint: '0-8 分，≥2 分為異常', min: 0, max: 8 },
+        ],
+    },
+    'BHT': {
+        icon: '🧠',
+        title: 'BHT 腦力健診篩檢工具 (TDS)',
+        description: '包含定向力(/4)、訊息登錄(/5)、思考流暢(0-2)、訊息回憶(/5)，滿分16分。',
+        fields: [
+            { key: 'bht_score', type: 'number', label: 'BHT 總分', hint: '0-16 分', min: 0, max: 16 },
         ],
     },
     'SPPB': {
         icon: '🦿',
         title: 'SPPB 行動量表',
-        description: '包含平衡測試（3 項）、步行速度測試、椅子起立測試，各項 0-4 分。',
+        description: '簡易身體表現功能量表，包含平衡測試、步行速度測試、椅子起立測試，各項 0-4 分。',
         hasAiTest: true,
         fields: [
-            { key: 'sppb_score', type: 'number', label: 'SPPB 總分', hint: '0-12 分，≤8 分為異常', min: 0, max: 12 },
+            { key: 'sppb_balance', type: 'number', label: '1. 平衡測試', hint: '0-4 分（並排+半並排+直線站立）', min: 0, max: 4 },
+            { key: 'sppb_gait', type: 'number', label: '2. 步行速度測試', hint: '0-4 分（走 4 公尺計時）', min: 0, max: 4 },
+            { key: 'sppb_chair', type: 'number', label: '3. 椅子起立測試', hint: '0-4 分（起立坐下 5 次計時）', min: 0, max: 4 },
+            { key: 'sppb_score', type: 'number', label: 'SPPB 總分', hint: '0-12 分，10-12 正常，0-9 行動能力障礙', min: 0, max: 12 },
         ],
     },
     'MNA-SF': {
@@ -48,9 +59,9 @@ const TASK_CONFIG: Record<string, {
     'GDS-15': {
         icon: '💭',
         title: 'GDS-15 憂鬱量表',
-        description: '老年憂鬱量表簡版，包含 15 個是/否問題。',
+        description: '老人憂鬱量表，包含 15 個是/否問題。如果「有」請答「是」，如果「沒有」請答「否」。',
         fields: [
-            { key: 'gds15_score', type: 'number', label: 'GDS-15 總分', hint: '0-15 分，≥5 分為異常', min: 0, max: 15 },
+            { key: 'gds15_score', type: 'number', label: 'GDS-15 總分', hint: '0-15 分；0-6 正常，7-10 中度情緒困擾，11+ 嚴重困擾', min: 0, max: 15 },
         ],
     },
     'Meds': {

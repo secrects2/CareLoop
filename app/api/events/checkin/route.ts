@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { eventId, lineUserId, displayName, pictureUrl } = body
+        const { eventId, lineUserId, displayName, pictureUrl, checkinMethod, deviceInfo } = body
 
         // 驗證必要欄位
         if (!eventId || !lineUserId || !displayName) {
@@ -35,7 +35,29 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // 寫入簽到紀錄 (UNIQUE 約束會阻止重複簽到)
+        // 首先檢查是否已經簽到過
+        const { data: existing, error: existingError } = await supabaseAdmin
+            .from('event_checkins')
+            .select('*')
+            .eq('event_id', eventId)
+            .eq('line_user_id', lineUserId)
+            .maybeSingle()
+
+        if (existing) {
+            return NextResponse.json({
+                success: true,
+                alreadyCheckedIn: true,
+                checkin: existing,
+                event: {
+                    title: event.title,
+                    event_date: event.event_date,
+                    event_time: event.event_time,
+                    location: event.location,
+                },
+            })
+        }
+
+        // 寫入簽到紀錄
         const { data: checkin, error: checkinError } = await supabaseAdmin
             .from('event_checkins')
             .insert({
@@ -43,38 +65,37 @@ export async function POST(request: NextRequest) {
                 line_user_id: lineUserId,
                 display_name: displayName,
                 picture_url: pictureUrl || null,
+                checkin_method: checkinMethod || 'line',
+                device_info: deviceInfo || null,
             })
             .select()
             .single()
 
         if (checkinError) {
-            // 處理重複簽到
-            if (checkinError.code === '23505') {
-                // Fetch existing checkin
-                const { data: existing } = await supabaseAdmin
-                    .from('event_checkins')
-                    .select('*')
-                    .eq('event_id', eventId)
-                    .eq('line_user_id', lineUserId)
-                    .single()
-
-                return NextResponse.json({
-                    success: true,
-                    alreadyCheckedIn: true,
-                    checkin: existing,
-                    event: {
-                        title: event.title,
-                        event_date: event.event_date,
-                        event_time: event.event_time,
-                        location: event.location,
-                    },
-                })
-            }
-
             return NextResponse.json(
                 { error: '簽到失敗：' + checkinError.message },
                 { status: 500 }
             )
+        }
+
+        // ✅ 自動同步：LINE 本人簽到時，自動建檔到長輩管理
+        if (!lineUserId.startsWith('elder_')) {
+            const { data: elderExists } = await supabaseAdmin
+                .from('elders')
+                .select('id')
+                .eq('line_user_id', lineUserId)
+                .maybeSingle()
+
+            if (!elderExists) {
+                await supabaseAdmin.from('elders').insert({
+                    instructor_id: event.created_by,
+                    name: displayName,
+                    line_user_id: lineUserId,
+                    gender: null,
+                    birth_date: null,
+                    notes: '由 LINE 簽到自動建檔',
+                }).select().maybeSingle() // 忽略錯誤，不影響簽到
+            }
         }
 
         return NextResponse.json({

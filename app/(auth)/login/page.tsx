@@ -26,83 +26,7 @@ export default function LoginPage() {
         }
     }, [])
 
-    // ★ 獨立處理 LINE OAuth 回調（不依賴 useLiff hook）
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        const hasOAuthCallback = params.has('code') && (params.has('liffClientId') || params.has('state'))
-        if (!hasOAuthCallback || liffAttempted.current) return
-
-        const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || ''
-        if (!LIFF_ID) return
-
-        const handleOAuthCallback = async () => {
-            liffAttempted.current = true
-            setLiffStatus('正在驗證 LINE 帳號...')
-
-            try {
-                const liff = (await import('@line/liff')).default
-
-                // 直接初始化 LIFF，讓 SDK 處理 OAuth callback 參數
-                await liff.init({ liffId: LIFF_ID })
-
-                if (!liff.isLoggedIn()) {
-                    setError('LINE 登入驗證失敗，請重試')
-                    setLiffStatus(null)
-                    return
-                }
-
-                const accessToken = liff.getAccessToken()
-                if (!accessToken) {
-                    setError('無法取得 LINE Access Token')
-                    setLiffStatus(null)
-                    return
-                }
-
-                setLiffStatus('正在建立系統帳號...')
-
-                const res = await fetch('/api/auth/liff', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken }),
-                })
-
-                const data = await res.json()
-
-                if (!res.ok || !data.success) {
-                    setError(data.error || 'LINE 登入失敗')
-                    setLiffStatus(null)
-                    return
-                }
-
-                setLiffStatus('登入中...')
-
-                const supabase = createClient()
-                const { error: signInErr } = await supabase.auth.signInWithPassword({
-                    email: data.email,
-                    password: data.password,
-                })
-
-                if (signInErr) {
-                    setError(`登入失敗：${signInErr.message}`)
-                    setLiffStatus(null)
-                    return
-                }
-
-                setLiffStatus(`歡迎，${data.displayName}！`)
-                await new Promise(r => setTimeout(r, 500))
-                window.location.replace('/dashboard')
-
-            } catch (err: unknown) {
-                console.error('LINE OAuth callback 處理失敗:', err)
-                // 清除 URL 參數，讓用戶可以重試
-                window.history.replaceState({}, '', window.location.pathname)
-                setError('LINE 登入處理失敗，請重新點擊登入')
-                setLiffStatus(null)
-            }
-        }
-
-        handleOAuthCallback()
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // 已移除獨立處理 LINE OAuth 回調（改由下方統一的 useEffect 處理，避免 LIFF init() 競爭）
 
     // LIFF 自動登入：LINE App 內 → 呼叫 server API → 取得 Supabase 帳號 → signIn
     useEffect(() => {
@@ -158,7 +82,7 @@ export default function LoginPage() {
                 setLiffStatus(`歡迎，${data.displayName}！`)
                 // 等待 session cookie 寫入完成
                 await new Promise(r => setTimeout(r, 500))
-                // 用 full reload 確保 middleware 讀到新 session
+                window.history.replaceState({}, '', window.location.pathname)
                 window.location.replace('/dashboard')
 
             } catch (err: unknown) {
@@ -238,7 +162,7 @@ export default function LoginPage() {
                         </svg>
                     </div>
                     <h1 className="text-2xl font-bold text-slate-800 mb-2">惠生檢測平台</h1>
-                    <p className="text-slate-500 text-sm">ICOPE & 地板滾球 AI 檢測系統</p>
+                    <p className="text-slate-500 text-sm">ICOPE 長者檢測系統</p>
                     <p className="text-slate-500 text-xs mt-1">運動指導員專用平台</p>
                 </div>
 

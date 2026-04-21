@@ -111,6 +111,66 @@ export interface AssessmentInsert {
 }
 
 // ============================================================================
+// 初評細項型別 — 對應國健署操作指引逐題回答
+// ============================================================================
+
+/** A. 認知功能細項 */
+export interface CognitionDetails {
+    /** 記憶力：長者是否正確重複「鉛筆、汽車、書」 */
+    memory_repeat: boolean
+    /** 定向力：今天日期（年/月/日）是否正確 */
+    orientation_date: boolean
+    /** 定向力：「您現在在哪裡？」是否正確 */
+    orientation_place: boolean
+    /** 回憶：第③題後再問三物品，是否正確 */
+    memory_recall: boolean
+}
+
+/** B. 行動功能細項 */
+export interface MobilityDetails {
+    /** 椅子起身測試實際秒數 */
+    chair_stand_seconds: number | null
+    /** 是否完成測試 */
+    completed: boolean
+}
+
+/** C. 營養不良細項 */
+export interface NutritionDetails {
+    /** 過去三個月體重無意中減輕 3 公斤以上 */
+    weight_loss: boolean
+    /** 過去三個月是否食慾不振 */
+    appetite_loss: boolean
+}
+
+/** D. 視力障礙細項 */
+export interface VisionDetails {
+    /** 眼睛看遠、看近或閱讀是否有困難 */
+    difficulty_reported: boolean
+    /** WHO 簡單視力圖 — 遠距離測試通過 */
+    who_far_pass: boolean | null
+    /** WHO 簡單視力圖 — 近距離測試通過 */
+    who_near_pass: boolean | null
+    /** 高風險眼科調查：有眼疾未追蹤 / 慢性病未眼科檢查 */
+    high_risk_eye: boolean
+}
+
+/** E. 聽力障礙細項 */
+export interface HearingDetails {
+    /** 氣音測試第一組 6,1,9 是否正確複誦 */
+    group1_pass: boolean
+    /** 氣音測試第二組 2,5,7 是否正確複誦（僅在第一組未通過時施測，null = 未施測） */
+    group2_pass: boolean | null
+}
+
+/** F. 憂鬱細項 */
+export interface DepressionDetails {
+    /** 過去兩週，是否常感到厭煩（心煩/阿雜）或沒有希望 */
+    feeling_hopeless: boolean
+    /** 過去兩週，是否減少很多活動和興趣的事 */
+    reduced_interest: boolean
+}
+
+// ============================================================================
 // 初評 (primary_assessments) — 6 大面向
 // ============================================================================
 
@@ -132,6 +192,18 @@ export interface PrimaryAssessment {
     hearing: boolean
     /** 是否有憂鬱傾向 */
     depression: boolean
+    /** 認知功能細項回答 */
+    cognition_details: CognitionDetails | null
+    /** 行動功能細項回答 */
+    mobility_details: MobilityDetails | null
+    /** 營養不良細項回答 */
+    nutrition_details: NutritionDetails | null
+    /** 視力障礙細項回答 */
+    vision_details: VisionDetails | null
+    /** 聽力障礙細項回答 */
+    hearing_details: HearingDetails | null
+    /** 憂鬱細項回答 */
+    depression_details: DepressionDetails | null
     /** 建立時間 */
     created_at: string
 }
@@ -145,6 +217,12 @@ export interface PrimaryAssessmentInsert {
     vision: boolean
     hearing: boolean
     depression: boolean
+    cognition_details?: CognitionDetails
+    mobility_details?: MobilityDetails
+    nutrition_details?: NutritionDetails
+    vision_details?: VisionDetails
+    hearing_details?: HearingDetails
+    depression_details?: DepressionDetails
 }
 
 /** 初評 6 大面向鍵名 */
@@ -152,12 +230,12 @@ export type PrimaryDomain = 'cognition' | 'mobility' | 'nutrition' | 'vision' | 
 
 /** 初評面向中文標籤 */
 export const PRIMARY_DOMAIN_LABELS: Record<PrimaryDomain, string> = {
-    cognition: '認知功能',
-    mobility: '行動能力',
-    nutrition: '營養狀態',
-    vision: '視力',
-    hearing: '聽力',
-    depression: '憂鬱',
+    cognition: 'A. 認知功能',
+    mobility: 'B. 行動功能',
+    nutrition: 'C. 營養不良',
+    vision: 'D. 視力障礙',
+    hearing: 'E. 聽力障礙',
+    depression: 'F. 憂鬱',
 }
 
 /** 初評面向圖示 */
@@ -224,9 +302,9 @@ export const SECONDARY_FIELD_LABELS: Record<string, string> = {
 /** 複評分數異常閾值 */
 export const SECONDARY_THRESHOLDS: Record<string, { operator: '>=' | '<='; value: number; label: string }> = {
     ad8_score: { operator: '>=', value: 2, label: '≥ 2 分為異常' },
-    sppb_score: { operator: '<=', value: 8, label: '≤ 8 分為異常' },
+    sppb_score: { operator: '<=', value: 9, label: '≤ 9 分為行動能力障礙' },
     mna_sf_score: { operator: '<=', value: 11, label: '≤ 11 分為異常' },
-    gds15_score: { operator: '>=', value: 5, label: '≥ 5 分為異常' },
+    gds15_score: { operator: '>=', value: 7, label: '≥ 7 分為中度以上情緒困擾' },
 }
 
 // ============================================================================

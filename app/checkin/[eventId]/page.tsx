@@ -30,7 +30,7 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
     const [regDone, setRegDone] = useState(false)
     const [regForm, setRegForm] = useState({
         name: '', id_number: '', birth_date: '', gender: 'male',
-        education_level: '', phone: '', blood_pressure: '', pulse: '',
+        education_level: '', phone: '',
     })
 
     // Save eventId immediately
@@ -66,9 +66,17 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                 // 已登入 → 直接簽到
                 if (liff.isLoggedIn()) {
                     doCheckin()
+                } else if (liff.isInClient()) {
+                    // 在 LINE App 內 → 自動登入
+                    liff.login()
                 } else {
-                    // ✅ 關鍵改動：不自動 liff.login()，而是顯示引導畫面
-                    setStatus('need-login')
+                    // 外部瀏覽器 → 自動跳轉到 LINE App 開啟（不需要輸入帳密）
+                    const eid = getEventId()
+                    if (CHECKIN_LIFF_ID && eid) {
+                        window.location.href = `https://liff.line.me/${CHECKIN_LIFF_ID}/${eid}`
+                    } else {
+                        setStatus('need-login')
+                    }
                 }
             } catch (initError: any) {
                 console.warn('LIFF init error:', initError)
@@ -119,6 +127,8 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                     lineUserId: profile.userId,
                     displayName: profile.displayName,
                     pictureUrl: profile.pictureUrl || null,
+                    checkinMethod: 'line',
+                    deviceInfo: navigator.userAgent || null,
                 }),
             })
 
@@ -126,6 +136,8 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
             if (!res.ok) throw new Error(data.error || '簽到失敗')
 
             localStorage.removeItem('checkin_event_id')
+            // 記住已成功授權，下次自動登入
+            localStorage.setItem('liff_checkin_authed', '1')
             setResult(data)
             setStatus(data.alreadyCheckedIn ? 'already' : 'success')
         } catch (err: any) {
@@ -163,8 +175,6 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                     gender: regForm.gender,
                     educationLevel: regForm.education_level,
                     phone: regForm.phone,
-                    bloodPressure: regForm.blood_pressure,
-                    pulse: regForm.pulse,
                 }),
             })
             if (!res.ok) throw new Error((await res.json()).error)
@@ -329,16 +339,7 @@ export default function CheckinPage({ params }: { params: Promise<{ eventId: str
                                                 <input type="tel" value={regForm.phone} onChange={e => setRegForm({ ...regForm, phone: e.target.value })}
                                                     className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="0912345678" />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs text-slate-500 mb-1">血壓</label>
-                                                <input type="text" value={regForm.blood_pressure} onChange={e => setRegForm({ ...regForm, blood_pressure: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="120/80" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs text-slate-500 mb-1">脈搏</label>
-                                                <input type="number" value={regForm.pulse} onChange={e => setRegForm({ ...regForm, pulse: e.target.value })}
-                                                    className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800" placeholder="72" />
-                                            </div>
+
                                         </div>
                                         <button
                                             onClick={handleRegSubmit}

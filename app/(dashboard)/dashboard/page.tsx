@@ -106,7 +106,7 @@ export default function DashboardPage() {
             {/* 🧪 前後測中心 */}
             <div className="glass-card p-6">
                 <h2 className="section-title mb-4">🧪 前後測中心</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                     <Link href="/icope/new" className="group p-5 rounded-2xl border-2 border-teal-200 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-300 transition-all">
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center text-2xl shrink-0">📋</div>
@@ -120,20 +120,7 @@ export default function DashboardPage() {
                             </div>
                         </div>
                     </Link>
-                    <Link href="/analysis" className="group p-5 rounded-2xl border-2 border-amber-200 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-300 transition-all">
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl shrink-0">🎯</div>
-                            <div>
-                                <h3 className="font-bold text-slate-800 group-hover:text-amber-700 transition-colors">地板滾球 AI 分析</h3>
-                                <p className="text-xs text-slate-500 mt-1">選擇長輩進行前測 / 後測 / 練習</p>
-                                <div className="flex gap-2 mt-2">
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">前測</span>
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700">後測</span>
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">練習</span>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
+
                 </div>
             </div>
 

@@ -1,10 +1,11 @@
-﻿'use client'
+'use client'
 
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
 import { logActivity } from '@/lib/activity-log'
-import { Search, Download, RefreshCw, Filter } from 'lucide-react'
+import { Search, Download, RefreshCw, Filter, ShieldCheck, ShieldOff, Crown } from 'lucide-react'
+import { ROLE_LABELS, ROLE_BADGE_STYLES, isSuperAdmin, type UserRole } from '@/lib/rbac'
 
 interface Instructor {
     id: string
@@ -28,12 +29,14 @@ interface ActivityLog {
 }
 
 export default function AdminPage() {
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null)
     const [instructors, setInstructors] = useState<Instructor[]>([])
     const [logs, setLogs] = useState<ActivityLog[]>([])
     const [loading, setLoading] = useState(true)
     const [logsLoading, setLogsLoading] = useState(true)
     const [toggling, setToggling] = useState<string | null>(null)
-    const [activeTab, setActiveTab] = useState<'instructors' | 'logs'>('instructors')
+    const [changingRole, setChangingRole] = useState<string | null>(null)
+    const [activeTab, setActiveTab] = useState<'instructors' | 'logs' | 'roles'>('instructors')
 
     // === 篩選狀態 ===
     const [filterUser, setFilterUser] = useState('')
@@ -43,6 +46,9 @@ export default function AdminPage() {
 
     const fetchInstructors = async () => {
         const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) setCurrentUserId(user.id)
+
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
@@ -78,6 +84,7 @@ export default function AdminPage() {
         fetchLogs()
     }, [])
 
+    // === 啟用/停用帳號 ===
     const toggleActive = async (id: string, name: string, currentStatus: boolean) => {
         setToggling(id)
         const supabase = createClient()
@@ -98,8 +105,40 @@ export default function AdminPage() {
         setToggling(null)
     }
 
+    // === 變更角色 ===
+    const changeRole = async (id: string, name: string, currentRole: string, newRole: UserRole) => {
+        if (id === currentUserId) {
+            toast.error('無法修改自己的角色')
+            return
+        }
+        if (currentRole === 'super_admin') {
+            toast.error('無法修改最高管理員的角色')
+            return
+        }
+
+        setChangingRole(id)
+        const supabase = createClient()
+        const { error } = await supabase
+            .from('profiles')
+            .update({ role: newRole })
+            .eq('id', id)
+
+        if (error) {
+            toast.error('角色變更失敗: ' + error.message)
+        } else {
+            const oldLabel = ROLE_LABELS[currentRole as UserRole] || currentRole
+            const newLabel = ROLE_LABELS[newRole]
+            toast.success(`已將 ${name} 角色從「${oldLabel}」變更為「${newLabel}」`)
+            logActivity('變更角色', `${name}: ${oldLabel} → ${newLabel}`, 'profile', id)
+            fetchInstructors()
+            fetchLogs()
+        }
+        setChangingRole(null)
+    }
+
     const activeCount = instructors.filter(i => i.is_active).length
     const disabledCount = instructors.filter(i => !i.is_active).length
+    const subAdminCount = instructors.filter(i => i.role === 'sub_admin').length
 
     // === 篩選後的紀錄 ===
     const uniqueUsers = useMemo(() => {
@@ -174,6 +213,7 @@ export default function AdminPage() {
         if (action.includes('停用')) return '🚫'
         if (action.includes('啟用')) return '✅'
         if (action.includes('登入')) return '🔑'
+        if (action.includes('角色')) return '🛡️'
         return '📋'
     }
 
@@ -182,6 +222,7 @@ export default function AdminPage() {
         if (action.includes('新增') || action.includes('啟用')) return 'text-emerald-600'
         if (action.includes('分析') || action.includes('AI')) return 'text-blue-600'
         if (action.includes('匯出')) return 'text-purple-600'
+        if (action.includes('角色')) return 'text-amber-600'
         return 'text-[#555]'
     }
 
@@ -200,16 +241,28 @@ export default function AdminPage() {
         return date.toLocaleDateString('zh-TW')
     }
 
+    /** 角色 Badge */
+    const RoleBadge = ({ role }: { role: string }) => {
+        const r = role as UserRole
+        const style = ROLE_BADGE_STYLES[r] || 'bg-slate-100 text-slate-600 border-slate-200'
+        const label = ROLE_LABELS[r] || role
+        return (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${style}`}>
+                {r === 'super_admin' && '👑 '}{label}
+            </span>
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-[#333]">🔑 管理員控制台</h1>
-                <p className="text-[#888] text-sm mt-1">管理指導員帳號權限與查看操作紀錄</p>
+                <p className="text-[#888] text-sm mt-1">管理指導員帳號、角色權限與操作紀錄</p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="glass-card p-4 text-center">
                     <p className="text-2xl font-bold text-[#333]">{instructors.length}</p>
                     <p className="text-xs text-[#888]">總帳號數</p>
@@ -222,10 +275,14 @@ export default function AdminPage() {
                     <p className="text-2xl font-bold text-red-500">{disabledCount}</p>
                     <p className="text-xs text-[#888]">已停用</p>
                 </div>
+                <div className="glass-card p-4 text-center">
+                    <p className="text-2xl font-bold text-amber-600">{subAdminCount}</p>
+                    <p className="text-xs text-[#888]">子管理員</p>
+                </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
                 <button
                     onClick={() => setActiveTab('instructors')}
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'instructors'
@@ -233,7 +290,16 @@ export default function AdminPage() {
                         : 'bg-[#f5f5f5] text-[#888] hover:bg-[#eee]'
                         }`}
                 >
-                    👥 指導員管理
+                    👥 帳號管理
+                </button>
+                <button
+                    onClick={() => setActiveTab('roles')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === 'roles'
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-[#f5f5f5] text-[#888] hover:bg-[#eee]'
+                        }`}
+                >
+                    🛡️ 角色管理
                 </button>
                 <button
                     onClick={() => setActiveTab('logs')}
@@ -246,10 +312,12 @@ export default function AdminPage() {
                 </button>
             </div>
 
-            {/* Tab: Instructors */}
+            {/* ================================================================ */}
+            {/* Tab: 帳號管理 (啟用/停用) */}
+            {/* ================================================================ */}
             {activeTab === 'instructors' && (
                 <div className="glass-card p-6">
-                    <h2 className="section-title mb-4">指導員列表</h2>
+                    <h2 className="section-title mb-4">帳號列表</h2>
 
                     {loading ? (
                         <div className="space-y-3">
@@ -260,7 +328,7 @@ export default function AdminPage() {
                     ) : instructors.length === 0 ? (
                         <div className="text-center py-10 text-[#888]">
                             <p className="text-4xl mb-3">👥</p>
-                            <p>尚無指導員帳號</p>
+                            <p>尚無帳號</p>
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -279,13 +347,9 @@ export default function AdminPage() {
                                             </div>
                                         )}
                                         <div>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <p className="text-[#333] font-medium">{instructor.full_name}</p>
-                                                {instructor.role === 'admin' && (
-                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                                        管理員
-                                                    </span>
-                                                )}
+                                                <RoleBadge role={instructor.role} />
                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${instructor.is_active
                                                     ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                                                     : 'bg-red-100 text-red-600 border border-red-200'
@@ -297,7 +361,8 @@ export default function AdminPage() {
                                         </div>
                                     </div>
 
-                                    {instructor.role !== 'admin' && (
+                                    {/* 不能停用 super_admin 和自己 */}
+                                    {instructor.role !== 'super_admin' && instructor.id !== currentUserId && (
                                         <button
                                             onClick={() => toggleActive(instructor.id, instructor.full_name, instructor.is_active)}
                                             disabled={toggling === instructor.id}
@@ -319,7 +384,157 @@ export default function AdminPage() {
                 </div>
             )}
 
-            {/* Tab: Activity Logs */}
+            {/* ================================================================ */}
+            {/* Tab: 角色管理 */}
+            {/* ================================================================ */}
+            {activeTab === 'roles' && (
+                <div className="glass-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="section-title">角色管理</h2>
+                        <div className="flex items-center gap-2 text-xs text-[#888]">
+                            <Crown className="w-3.5 h-3.5 text-amber-500" />
+                            僅最高管理員可指派角色
+                        </div>
+                    </div>
+
+                    {/* 角色說明卡 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                        <div className="rounded-xl border-2 border-rose-200 bg-rose-50/50 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">👑</span>
+                                <span className="font-bold text-rose-700 text-sm">最高管理員</span>
+                            </div>
+                            <p className="text-xs text-rose-600/80">可管理所有帳號、角色、停用/啟用、查看操作紀錄</p>
+                        </div>
+                        <div className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">🛡️</span>
+                                <span className="font-bold text-amber-700 text-sm">子管理員</span>
+                            </div>
+                            <p className="text-xs text-amber-600/80">可管理用印申請數據、匯出報表，可申請用印</p>
+                        </div>
+                        <div className="rounded-xl border-2 border-slate-200 bg-slate-50/50 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">👤</span>
+                                <span className="font-bold text-slate-600 text-sm">指導員</span>
+                            </div>
+                            <p className="text-xs text-slate-500">一般使用者，可使用所有檢測功能但無管理權限</p>
+                        </div>
+                        <div className="rounded-xl border-2 border-sky-200 bg-sky-50/50 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">🏢</span>
+                                <span className="font-bold text-sky-600 text-sm">惠生員工</span>
+                            </div>
+                            <p className="text-xs text-sky-500">可申請用印，僅可瞧看儀表板與操作說明</p>
+                        </div>
+                    </div>
+
+                    {/* 角色列表 */}
+                    {loading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {instructors.map((instructor) => {
+                                const isCurrentUser = instructor.id === currentUserId
+                                const isSuperAdminUser = instructor.role === 'super_admin'
+                                const canModify = !isCurrentUser && !isSuperAdminUser
+
+                                return (
+                                    <div
+                                        key={instructor.id}
+                                        className={`flex items-center justify-between p-4 rounded-xl transition-colors ${
+                                            isSuperAdminUser 
+                                                ? 'bg-rose-50/50 border border-rose-200' 
+                                                : instructor.role === 'sub_admin'
+                                                    ? 'bg-amber-50/50 border border-amber-200'
+                                                    : 'bg-[#f5f5f5] hover:bg-[#f0f0f0]'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {instructor.avatar_url ? (
+                                                <img src={instructor.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                                            ) : (
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                                                    isSuperAdminUser ? 'bg-rose-500' :
+                                                    instructor.role === 'sub_admin' ? 'bg-amber-500' :
+                                                    instructor.role === 'employee' ? 'bg-sky-500' : 'bg-teal-500'
+                                                }`}>
+                                                    {instructor.full_name?.[0] || '?'}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-[#333] font-medium">{instructor.full_name}</p>
+                                                    <RoleBadge role={instructor.role} />
+                                                    {isCurrentUser && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-600 border border-blue-200">
+                                                            本人
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-[#888]">{instructor.email}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* 角色切換按鈕 */}
+                                        {canModify && (
+                                            <div className="flex gap-2 flex-wrap">
+                                                {/* employee → instructor */}
+                                                {instructor.role === 'employee' && (
+                                                    <button
+                                                        onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'instructor')}
+                                                        disabled={changingRole === instructor.id}
+                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {changingRole === instructor.id ? '處理中...' : <><ShieldCheck className="w-4 h-4" /> 升為指導員</>}
+                                                    </button>
+                                                )}
+                                                {/* instructor → sub_admin or employee */}
+                                                {instructor.role === 'instructor' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'sub_admin')}
+                                                            disabled={changingRole === instructor.id}
+                                                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors disabled:opacity-50"
+                                                        >
+                                                            {changingRole === instructor.id ? '處理中...' : <><ShieldCheck className="w-4 h-4" /> 升為子管理員</>}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'employee')}
+                                                            disabled={changingRole === instructor.id}
+                                                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-200 transition-colors disabled:opacity-50"
+                                                        >
+                                                            {changingRole === instructor.id ? '處理中...' : <><ShieldOff className="w-4 h-4" /> 轉為惠生員工</>}
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {/* sub_admin → instructor */}
+                                                {instructor.role === 'sub_admin' && (
+                                                    <button
+                                                        onClick={() => changeRole(instructor.id, instructor.full_name, instructor.role, 'instructor')}
+                                                        disabled={changingRole === instructor.id}
+                                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {changingRole === instructor.id ? '處理中...' : <><ShieldOff className="w-4 h-4" /> 降為指導員</>}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ================================================================ */}
+            {/* Tab: 操作紀錄 */}
+            {/* ================================================================ */}
             {activeTab === 'logs' && (
                 <div className="glass-card p-6 space-y-4">
                     {/* 篩選工具列 */}
@@ -457,4 +672,3 @@ export default function AdminPage() {
         </div>
     )
 }
-
