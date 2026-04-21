@@ -1,10 +1,17 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
     title: '惠生檢測平台',
     description: '惠生醫藥集團 ICOPE 前後測系統',
+}
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 }
 
 export default function RootLayout({
