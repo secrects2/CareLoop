@@ -59,6 +59,7 @@ export default function AdminPage() {
     // === 角色管理篩選 ===
     const [roleSearchKeyword, setRoleSearchKeyword] = useState('')
     const [roleFilterRole, setRoleFilterRole] = useState('')
+    const [roleDisplayCount, setRoleDisplayCount] = useState(20)
 
     const fetchInstructors = async () => {
         const supabase = createClient()
@@ -192,6 +193,13 @@ export default function AdminPage() {
             return true
         })
     }, [instructors, roleSearchKeyword, roleFilterRole])
+
+    // 篩選條件改變時，重設顯示數量為 20
+    useEffect(() => {
+        setRoleDisplayCount(20)
+    }, [roleSearchKeyword, roleFilterRole])
+
+    const displayedRoles = filteredRoleList.slice(0, roleDisplayCount)
 
     // === 篩選後的紀錄 ===
     const uniqueUsers = useMemo(() => {
@@ -510,7 +518,7 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    <p className="text-xs text-[#aaa] mb-3">顯示 <strong className="text-[#333]">{filteredRoleList.length}</strong> / {instructors.length} 位成員</p>
+                    <p className="text-xs text-[#aaa] mb-3">顯示 <strong className="text-[#333]">{displayedRoles.length}</strong> / {filteredRoleList.length} 位符合條件成員 (共 {instructors.length} 位)</p>
 
                     {/* 成員列表 */}
                     {loading ? (
@@ -526,7 +534,7 @@ export default function AdminPage() {
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {filteredRoleList.map((instructor) => {
+                            {displayedRoles.map((instructor) => {
                                 const isCurrentUser = instructor.id === currentUserId
                                 return (
                                     <div
@@ -615,6 +623,17 @@ export default function AdminPage() {
                                     </div>
                                 )
                             })}
+
+                            {filteredRoleList.length > roleDisplayCount && (
+                                <div className="text-center pt-4 pb-2">
+                                    <button
+                                        onClick={() => setRoleDisplayCount(prev => prev + 20)}
+                                        className="px-6 py-2 bg-[#f5f5f5] text-[#555] hover:bg-[#eee] font-medium text-sm rounded-xl transition-colors"
+                                    >
+                                        顯示更多名單...
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
