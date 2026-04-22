@@ -42,25 +42,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     const [currentTime, setCurrentTime] = useState(new Date())
     const [showScanner, setShowScanner] = useState(false)
     const [scanning, setScanning] = useState(false)
-    const [offlineQueue, setOfflineQueue] = useState<{ elderId: string, timestamp: string }[]>([])
-    const [isSyncing, setIsSyncing] = useState(false)
-
-    // Load offline queue on mount
-    useEffect(() => {
-        const stored = localStorage.getItem(`offline_checkin_${id}`)
-        if (stored) {
-            try { setOfflineQueue(JSON.parse(stored)) } catch (e) { console.error('Failed to parse offline queue', e) }
-        }
-    }, [id])
-
-    const saveToOfflineQueue = (elderId: string) => {
-        setOfflineQueue(prev => {
-            const newQueue = [...prev, { elderId, timestamp: new Date().toISOString() }]
-            localStorage.setItem(`offline_checkin_${id}`, JSON.stringify(newQueue))
-            return newQueue
-        })
-        toast.success(`無網路連線，已本機暫存簽到紀錄`, { icon: '💾' })
-    }
 
     // Fetch event and checkins
     const fetchData = useCallback(async () => {
@@ -90,40 +71,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         setLoading(false)
     }, [id, router])
 
-    const syncOfflineQueue = useCallback(async () => {
-        if (offlineQueue.length === 0 || isSyncing) return
-        setIsSyncing(true)
-        const toastId = toast.loading(`正在同步 ${offlineQueue.length} 筆離線紀錄...`)
-        try {
-            const res = await fetch('/api/events/checkin/batch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ eventId: id, checkins: offlineQueue, deviceInfo: navigator.userAgent || null })
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || '同步失敗')
-            
-            toast.success(`成功同步 ${data.synced} 筆紀錄 (跳過重複 ${data.skipped} 筆)`, { id: toastId, icon: '✨' })
-            setOfflineQueue([])
-            localStorage.removeItem(`offline_checkin_${id}`)
-            fetchData()
-        } catch (err: any) {
-            toast.error(`同步失敗: ${err.message}`, { id: toastId })
-        } finally {
-            setIsSyncing(false)
-        }
-    }, [id, offlineQueue, isSyncing, fetchData])
 
-    // Auto sync when online
-    useEffect(() => {
-        const handleOnline = () => {
-            if (offlineQueue.length > 0 && !isSyncing) {
-                syncOfflineQueue()
-            }
-        }
-        window.addEventListener('online', handleOnline)
-        return () => window.removeEventListener('online', handleOnline)
-    }, [offlineQueue, syncOfflineQueue, isSyncing])
 
     // Real-time clock
     useEffect(() => {
@@ -293,7 +241,18 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 setShowScanner(false);
                 
                 if (!navigator.onLine) {
-                    saveToOfflineQueue(elderId);
+                    import('@/lib/offline-sync').then(({ saveOfflineRecord }) => {
+                        saveOfflineRecord('checkin', {
+                            eventId: id,
+                            elderId,
+                            deviceInfo: navigator.userAgent
+                        })
+                        toast.success('📡 無網路連線，已本機暫存簽到紀錄', {
+                            duration: 5000,
+                            icon: '📦',
+                            style: { background: '#059669', color: '#fff' }
+                        })
+                    })
                     setTimeout(() => setScanning(false), 2000);
                     return;
                 }
@@ -334,7 +293,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 } catch (err: any) {
                     if (err.message === 'Failed to fetch' || err.message.includes('NetworkError')) {
                         toast.dismiss(toastId);
-                        saveToOfflineQueue(elderId);
+                        import('@/lib/offline-sync').then(({ saveOfflineRecord }) => {
+                            saveOfflineRecord('checkin', {
+                                eventId: id,
+                                elderId,
+                                deviceInfo: navigator.userAgent
+                            })
+                            toast.success('📡 網路突然中斷，已轉為本機暫存', {
+                                duration: 5000,
+                                icon: '📦'
+                            })
+                        })
                     } else {
                         toast.error(err.message, { id: toastId });
                     }
@@ -478,27 +447,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
             </div>
 
-            {/* ── Offline Sync Banner ── */}
-            {offlineQueue.length > 0 && (
-                <div className="bg-amber-50 rounded-2xl border border-amber-200/60 p-4 mb-5 shadow-sm">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                            <span className="text-lg">💾</span>
-                        </div>
-                        <div>
-                            <p className="text-sm font-bold text-amber-900">{offlineQueue.length} 筆離線紀錄待同步</p>
-                            <p className="text-[11px] text-amber-600">連上網路後自動同步</p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={syncOfflineQueue}
-                        disabled={isSyncing}
-                        className="w-full py-2.5 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 disabled:opacity-50 transition-colors"
-                    >
-                        {isSyncing ? '同步中...' : '立即同步'}
-                    </button>
-                </div>
-            )}
+
 
             {/* ── Checkin List (iOS-style) ── */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">

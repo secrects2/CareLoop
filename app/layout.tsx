@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
+import OfflineSyncBanner from '@/components/OfflineSyncBanner'
 
 export const metadata: Metadata = {
     title: '惠生檢測平台',
@@ -22,6 +23,7 @@ export default function RootLayout({
     return (
         <html lang="zh-Hant">
             <body className="antialiased">
+                <OfflineSyncBanner />
                 {children}
                 <Toaster
                     position="top-center"

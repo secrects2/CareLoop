@@ -172,6 +172,31 @@ export default function PrimaryAssessmentForm({
 
     // === 提交 ===
     const handleSubmit = async () => {
+        // [新增] 離線防護網
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            import('@/lib/offline-sync').then(({ saveOfflineRecord }) => {
+                saveOfflineRecord('icope', {
+                    patientId,
+                    patientName,
+                    stage,
+                    results,
+                    cognition_details: cognition,
+                    mobility_details: mobility,
+                    nutrition_details: nutrition,
+                    vision_details: vision,
+                    hearing_details: hearing,
+                    depression_details: depression,
+                })
+                toast.success('📡 因網路離線，已將您的資料暫存至本機！', {
+                    duration: 5000,
+                    icon: '📦',
+                    style: { background: '#059669', color: '#fff' }
+                })
+                router.push('/icope')
+            })
+            return
+        }
+
         setSubmitting(true)
         try {
             const supabase = createClient()
