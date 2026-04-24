@@ -77,9 +77,6 @@ export const config = {
         '/subsidy/:path*',
         '/guide/:path*',
         '/seal-application/:path*',
-        '/privacy',
-        '/terms',
-        '/contact',
         '/login',
     ],
 }
