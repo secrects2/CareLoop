@@ -317,7 +317,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         }
     }
 
-    const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://careloop.vercel.app'
+    const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://careloop-2026.vercel.app'
     const qrUrl = `${appOrigin}/checkin/${id}`
 
     const methodTag = (m: string | null, lineUserId: string) => {
