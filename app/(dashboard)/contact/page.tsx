@@ -1,4 +1,4 @@
-﻿export default function ContactPage() {
+export default function ContactPage() {
     return (
         <div className="max-w-3xl mx-auto py-12 px-6 text-slate-600 space-y-8">
             <h1 className="text-3xl font-bold text-slate-800">聯絡我們</h1>
@@ -8,7 +8,7 @@
                     <div className="w-12 h-12 rounded-xl bg-primary-600/20 flex items-center justify-center text-2xl shrink-0">🏢</div>
                     <div>
                         <h2 className="text-lg font-semibold text-slate-800">KeiSei Holistic Pharmaceutical CO., LTD.</h2>
-                        <p className="text-sm text-[#555] mt-1">惠生醫藥集團 — 惠生檢測平台開發與營運</p>
+                        <p className="text-sm text-[#555] mt-1">惠生醫藥集團 — CareLoop 開發與營運</p>
                     </div>
                 </div>
 

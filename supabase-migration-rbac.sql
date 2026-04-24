@@ -1,5 +1,5 @@
 -- ============================================================================
--- EPA Tool — 角色權限管理系統 (RBAC) Migration
+-- CareLoop — 角色權限管理系統 (RBAC) Migration
 -- 四級角色：super_admin / sub_admin / instructor / employee
 -- 在 Supabase SQL Editor 中執行此腳本
 -- ============================================================================

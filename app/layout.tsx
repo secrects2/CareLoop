@@ -4,8 +4,8 @@ import { Toaster } from 'react-hot-toast'
 import OfflineSyncBanner from '@/components/OfflineSyncBanner'
 
 export const metadata: Metadata = {
-    title: '惠生檢測平台',
-    description: '惠生醫藥集團 ICOPE 前後測系統',
+    title: 'CareLoop',
+    description: 'CareLoop — 惠生醫藥集團 ICOPE 前後測系統',
 }
 
 export const viewport: Viewport = {

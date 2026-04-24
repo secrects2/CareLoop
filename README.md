@@ -1,4 +1,4 @@
-# 惠生檢測平台 (EPA Tool)
+# CareLoop — 惠生檢測平台
 
 > 專為社區據點、日照中心與運動指導員打造的長者健康管理與 AI 動作分析平台
 
@@ -71,7 +71,7 @@ npm run dev
 ## 📁 專案重點結構
 
 ```text
-epa_tool/
+careloop/
 ├── app/
 │   ├── (auth)/login/         # 管理員登入 / LINE 簽到處理
 │   ├── (dashboard)/          # 全域儀表板與功能目錄

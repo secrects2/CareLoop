@@ -1,5 +1,5 @@
 // ============================================================================
-// EPA Tool — Role-Based Access Control (RBAC)
+// CareLoop — Role-Based Access Control (RBAC)
 // 四級角色：super_admin → sub_admin → instructor → employee
 // ============================================================================
 

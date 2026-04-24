@@ -1,4 +1,4 @@
-﻿export default function TermsPage() {
+export default function TermsPage() {
     return (
         <div className="max-w-3xl mx-auto py-12 px-6 text-slate-600 space-y-8">
             <h1 className="text-3xl font-bold text-slate-800">服務條款</h1>
@@ -6,7 +6,7 @@
 
             <section className="space-y-3">
                 <h2 className="text-xl font-semibold text-slate-800">一、服務說明</h2>
-                <p>「惠生檢測平台」（以下稱本系統）由惠生醫藥集團（KeiSei Holistic Pharmaceutical CO., LTD.）開發與營運，提供 ICOPE 長者內在能力前後測評估及地板滾球 AI 動作分析服務。</p>
+                <p>「CareLoop」（以下稱本系統）由惠生醫藥集團（KeiSei Holistic Pharmaceutical CO., LTD.）開發與營運，提供 ICOPE 長者內在能力前後測評估及地板滾球 AI 動作分析服務。</p>
             </section>
 
             <section className="space-y-3">

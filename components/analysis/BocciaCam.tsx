@@ -7,9 +7,9 @@ import { downloadFramesCSV, downloadSummaryCSV, downloadExcel, type SessionSumma
 import AnalysisReport from '@/components/analysis/AnalysisReport'
 import { type AnalysisMetrics } from '@/lib/analysis/ai-prescription'
 
-// Stubs for modules not available in EPA Tool (originally from BocciaCam project)
+// Stubs for modules not available in CareLoop (originally from BocciaCam project)
 async function saveRehabSession(_params: any): Promise<{ success: boolean; sessionId?: string; error?: string }> {
-    console.warn('saveRehabSession is not implemented in EPA Tool')
+    console.warn('saveRehabSession is not implemented in CareLoop')
     return { success: true, sessionId: 'stub-session' }
 }
 function getAiPrescription(_metrics: any) {

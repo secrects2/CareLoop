@@ -106,10 +106,10 @@ export default function DashboardLayout({
                 <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: 'var(--gradient-primary)' }}>
-                            E
+                            C
                         </div>
                         <div>
-                            <h1 className="font-bold text-slate-800 text-sm leading-tight">惠生檢測平台</h1>
+                            <h1 className="font-bold text-slate-800 text-sm leading-tight">CareLoop</h1>
                             <p className="text-xs text-slate-500">ICOPE 檢測平台</p>
                         </div>
                     </div>
