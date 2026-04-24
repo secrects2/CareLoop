@@ -22,9 +22,9 @@ export default function AboutPage() {
                     <nav className="hidden md:flex gap-8 items-center font-manrope text-sm">
                         <Link href="/" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">首頁</Link>
                         <Link href="/about" className="text-cl-primary font-semibold border-b-2 border-cl-primary pb-1">關於 CareLoop</Link>
-                        <Link href="/#workflow" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">CareLoop 如何運作</Link>
-                        <Link href="/#solution" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">解決方案</Link>
-                        <Link href="/#partners" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">合作夥伴</Link>
+                        <Link href="/workflow" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">CareLoop 如何運作</Link>
+                        <Link href="/solution" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">解決方案</Link>
+                        <Link href="/partners" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">合作夥伴</Link>
                     </nav>
 
                     <div className="hidden md:flex items-center gap-4 font-manrope">
@@ -56,7 +56,7 @@ export default function AboutPage() {
                                 我們致力於打破場域邊界，將專業檢測、AI 分析與在地資源深度整合。以長輩需求為核心，建立一套透明且連續的照護鏈，為每一個家庭提供最精準的健康決策。
                             </p>
                             <div className="flex items-center gap-4 pt-4">
-                                <Link href="/#solution" className="bg-cl-primary text-white px-8 py-3 rounded-full font-semibold text-sm tracking-wider hover:bg-cl-primary-dark transition-colors shadow-sm">
+                                <Link href="/solution" className="bg-cl-primary text-white px-8 py-3 rounded-full font-semibold text-sm tracking-wider hover:bg-cl-primary-dark transition-colors shadow-sm">
                                     了解更多
                                 </Link>
                             </div>

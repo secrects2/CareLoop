@@ -62,9 +62,9 @@ export default function LandingPage() {
                     <nav className="hidden md:flex gap-8 items-center font-manrope text-sm">
                         <Link href="/" className="text-cl-primary font-semibold border-b-2 border-cl-primary pb-1">首頁</Link>
                         <Link href="/about" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">關於 CareLoop</Link>
-                        <Link href="/#workflow" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">CareLoop 如何運作</Link>
-                        <Link href="/#solution" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">解決方案</Link>
-                        <Link href="/#partners" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">合作夥伴</Link>
+                        <Link href="/workflow" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">CareLoop 如何運作</Link>
+                        <Link href="/solution" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">解決方案</Link>
+                        <Link href="/partners" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">合作夥伴</Link>
                     </nav>
 
                     <div className="hidden md:flex items-center gap-4 font-manrope">
