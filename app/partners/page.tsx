@@ -176,7 +176,7 @@ export default function PartnersPage() {
                             <div className="group bg-white rounded-xl overflow-hidden border border-cl-neutral hover:shadow-lg hover:border-cl-primary/30 transition-all duration-300 flex flex-col">
                                 <div className="h-48 relative overflow-hidden bg-cl-tertiary">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img alt="Supply" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4C7gC2kQKzrDz6PPUulHmSWxGnp1J81xkODzsXizQZy0ZTxPw36_lfyO0FrZWV9s2JHtW3uGEkgCHJQ8bTmhC-sHJ3nfjDiIxJIWvonuidUH1oW3BGactcAkUBMqG_a3CXX9JlXYUZ-2t_UdkOS-ohJbeDy2_ebhy6F5TShjR9OFjU2onQZwx_eHKucsRg0ih_ieggdKWb829TuWP3EVzzERCBnLpiCzaShdS5wzf3ysw7h740HCZmFK-KKtTsxHtBuNWnuF9ZIx9" />
+                                    <img alt="Supply" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/images/partner-supply.png" />
                                 </div>
                                 <div className="p-6 flex flex-col gap-4 flex-grow">
                                     <div className="flex items-center gap-3">
