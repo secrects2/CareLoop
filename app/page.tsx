@@ -115,7 +115,7 @@ export default function LandingPage() {
                         <img
                             alt="快樂的長者在陽光公園散步"
                             className="object-cover w-full h-full"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-fLwmggMzPpO1_a9yUxr7idHpcjylV8TLQmKpBEUIMU4TrHnYHse07qtvHSTQAfxITAqsiQZxuaz26jSbKb_8va1p2xOO5D7TeL-aEJX_40DIM28C4RTbh9gkalno3w2_k-WDqeF-NvCxTPzhXOC1IQwb3Hy7807YzI_CiAiwCfLAlM4maivA_2xSv1OIzsnL8EwdPychpSDexnzqddBMJTj-eIBzOiYeDeGTwWecSfhLez0rXawHPADSfEt5gZ1ndRN3-keSztBL"
+                            src="/images/hero.png"
                         />
                     </div>
                 </section>
