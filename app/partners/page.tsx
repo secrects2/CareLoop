@@ -68,7 +68,7 @@ export default function PartnersPage() {
                         </div>
                         <div className="relative h-[400px] rounded-lg overflow-hidden bg-cl-tertiary">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img alt="Healthcare professionals" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyA39jyGF86byZrPYd6fkpqIIAyasj36WJd07wYMlwtiRWqXoQyLurXtE-ygxp7e4ZX2tzQ_E_0ByExcL0B-q8lAkMSfmYNXiv4hIaTnOj7b_Ax1iZa1w080C5eaPp_86RUkRNC5XNvKM9S-j2xohaMzfAufZID4SEuabcRMXCFlI7aV8o7JKq04ICEWztvPDTzJuhPslXgksTCKE9TywWcqMzwaz0Bhi2nhEmYYfr-SEPeQgKeBxcL4UVr-aJvQeJa6fg71NtAGG1" />
+                            <img alt="Healthcare professionals" className="w-full h-full object-cover" src="/images/partner-network.png" />
                             <div className="absolute inset-0 bg-gradient-to-tr from-cl-primary/20 to-transparent mix-blend-overlay"></div>
                         </div>
                     </section>
