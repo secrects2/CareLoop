@@ -206,7 +206,7 @@ export default function DashboardLayout({
                                 <span>·</span>
                                 <a href="/terms" className="hover:text-primary-600 transition-colors">服務條款</a>
                                 <span>·</span>
-                                <a href="/contact" className="hover:text-primary-600 transition-colors">聯絡我們</a>
+                                <a href="/support" className="hover:text-primary-600 transition-colors">聯絡我們</a>
                             </div>
                         </div>
                         <p className="text-center text-[10px] text-slate-400 mt-2">

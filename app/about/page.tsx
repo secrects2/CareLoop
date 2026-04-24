@@ -12,7 +12,12 @@ export default function AboutPage() {
             {/* ── TopNav ── */}
             <header className="fixed top-0 w-full z-50 border-b border-cl-neutral bg-white/90 backdrop-blur-md">
                 <div className="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
-                    <Link href="/" className="text-2xl font-bold text-cl-primary font-manrope cursor-pointer">CareLoop</Link>
+                    <Link href="/" className="text-2xl font-bold text-cl-primary font-manrope cursor-pointer flex items-center gap-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-cl-primary">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        CareLoop
+                    </Link>
 
                     <nav className="hidden md:flex gap-8 items-center font-manrope text-sm">
                         <Link href="/" className="text-cl-secondary/70 hover:text-cl-primary transition-colors">首頁</Link>
@@ -24,7 +29,7 @@ export default function AboutPage() {
 
                     <div className="hidden md:flex items-center gap-4 font-manrope">
                         <Link href="/login" className="text-cl-primary font-medium hover:opacity-80 transition-opacity">登入</Link>
-                        <Link href="/login" className="bg-cl-primary text-white px-5 py-2 rounded-full font-medium hover:bg-cl-primary-dark active:scale-95 transition-all">立即體驗</Link>
+                        <Link href="/contact" className="bg-cl-primary text-white px-5 py-2 rounded-full font-medium hover:bg-cl-primary-dark active:scale-95 transition-all">立即體驗</Link>
                     </div>
 
                     <button className="md:hidden text-cl-primary" aria-label="選單">
@@ -192,10 +197,10 @@ export default function AboutPage() {
                         <div className="bg-white p-8 rounded-2xl mt-8 border border-cl-neutral shadow-[0_4px_24px_-4px_rgba(31,183,183,0.08)]">
                             <h3 className="font-manrope text-2xl font-semibold text-cl-secondary mb-6">想了解 CareLoop 如何導入你的場域？</h3>
                             <div className="flex flex-col sm:flex-row justify-center gap-4">
-                                <Link href="/login" className="bg-cl-primary text-white px-8 py-3 rounded-full font-semibold text-sm tracking-wider hover:bg-cl-primary-dark transition-colors shadow-sm">
+                                <Link href="/contact" className="bg-cl-primary text-white px-8 py-3 rounded-full font-semibold text-sm tracking-wider hover:bg-cl-primary-dark transition-colors shadow-sm">
                                     預約專家解決方案
                                 </Link>
-                                <Link href="/login" className="border-2 border-cl-primary text-cl-primary px-8 py-3 rounded-full font-semibold text-sm tracking-wider hover:bg-cl-tertiary transition-colors">
+                                <Link href="/contact" className="border-2 border-cl-primary text-cl-primary px-8 py-3 rounded-full font-semibold text-sm tracking-wider hover:bg-cl-tertiary transition-colors">
                                     與我們開啟對話
                                 </Link>
                             </div>

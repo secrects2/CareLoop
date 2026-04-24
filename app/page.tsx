@@ -52,7 +52,12 @@ export default function LandingPage() {
             {/* ── TopNav ── */}
             <header className="fixed top-0 w-full z-50 border-b border-cl-neutral bg-white/90 backdrop-blur-md">
                 <div className="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
-                    <span className="text-2xl font-bold text-cl-primary font-manrope cursor-pointer">CareLoop</span>
+                    <Link href="/" className="text-2xl font-bold text-cl-primary font-manrope cursor-pointer flex items-center gap-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-cl-primary">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        CareLoop
+                    </Link>
 
                     <nav className="hidden md:flex gap-8 items-center font-manrope text-sm">
                         <Link href="/" className="text-cl-primary font-semibold border-b-2 border-cl-primary pb-1">首頁</Link>
@@ -64,7 +69,7 @@ export default function LandingPage() {
 
                     <div className="hidden md:flex items-center gap-4 font-manrope">
                         <Link href="/login" className="text-cl-primary font-medium hover:opacity-80 transition-opacity">登入</Link>
-                        <Link href="/login" className="bg-cl-primary text-white px-5 py-2 rounded-full font-medium hover:bg-cl-primary-dark active:scale-95 transition-all">立即體驗</Link>
+                        <Link href="/contact" className="bg-cl-primary text-white px-5 py-2 rounded-full font-medium hover:bg-cl-primary-dark active:scale-95 transition-all">立即體驗</Link>
                     </div>
 
                     {/* Mobile menu button */}
@@ -222,12 +227,12 @@ export default function LandingPage() {
                         無論您是社區藥局、健身房還是地區診所，加入 CareLoop 網絡，共同打造全方位的健康支持體系。
                     </p>
                     <div className="flex flex-wrap gap-4 justify-center">
-                        <button className="bg-cl-primary text-white font-semibold text-sm tracking-wider px-8 py-4 rounded-full shadow-sm hover:shadow-md hover:bg-cl-primary-dark transition-all">
+                        <Link href="/contact" className="bg-cl-primary text-white font-semibold text-sm tracking-wider px-8 py-4 rounded-full shadow-sm hover:shadow-md hover:bg-cl-primary-dark transition-all">
                             預約專家解決方案
-                        </button>
-                        <button className="border-2 border-cl-primary text-cl-primary font-semibold text-sm tracking-wider px-8 py-4 rounded-full hover:bg-cl-tertiary transition-colors">
+                        </Link>
+                        <Link href="/contact" className="border-2 border-cl-primary text-cl-primary font-semibold text-sm tracking-wider px-8 py-4 rounded-full hover:bg-cl-tertiary transition-colors">
                             與我們開啟對話
-                        </button>
+                        </Link>
                     </div>
                 </section>
             </main>
@@ -241,7 +246,7 @@ export default function LandingPage() {
                         <p className="text-sm text-cl-secondary/50 font-manrope mt-2">CareLoop 讓健康不只是被看見，也能被接住、被安排，並持續陪伴。</p>
                     </div>
                     <div className="flex flex-wrap gap-6 md:justify-end text-sm text-cl-secondary/50 font-manrope">
-                        <a href="#" className="hover:text-cl-primary transition-colors hover:underline decoration-cl-primary underline-offset-4">聯絡我們</a>
+                        <Link href="/contact" className="hover:text-cl-primary transition-colors hover:underline decoration-cl-primary underline-offset-4">聯絡我們</Link>
                         <a href="#" className="hover:text-cl-primary transition-colors hover:underline decoration-cl-primary underline-offset-4">隱私政策</a>
                         <a href="#" className="hover:text-cl-primary transition-colors hover:underline decoration-cl-primary underline-offset-4">服務條款</a>
                         <a href="#" className="hover:text-cl-primary transition-colors hover:underline decoration-cl-primary underline-offset-4">常見問題</a>
