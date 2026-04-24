@@ -63,7 +63,7 @@ export default function AboutPage() {
                         </div>
                         <div className="relative h-[500px] rounded-xl overflow-hidden shadow-[0_4px_24px_-4px_rgba(31,183,183,0.12)]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img alt="About CareLoop" className="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWGEQN-7iLPGzJJRTUIEUEYetDrWTA9r6nJljCOD2hq0xuPZlSL6ErG4ctZ4J77oQIIvh6v9tElFskgK4SzN0ol1pQl60CtDN1G4QGQcZMwmDaw9U3faxxsi6_ZRxxdFKmCuRLmYg2LTRSsezboMEXyfhtn95g8XV1W3D1cJV4M3AWjxColUyHbm5vNqxU7iM04JrW422lQBJcx3806Bdu-sPmPGV6R_H1ugO0v5BUW0vU-n079Roe2Ynw7nEc0ObsXsj2QN-JoKCS" />
+                            <img alt="About CareLoop" className="absolute inset-0 w-full h-full object-cover" src="/images/about-hero.png" />
                         </div>
                     </div>
                 </section>
