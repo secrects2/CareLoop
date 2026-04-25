@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 
 /* ── six pillars data ── */
 const pillars = [
-    { icon: 'monitor_heart', title: '精準數據採集', desc: '數位化評估工具，標準化掌握個案健康現況。' },
-    { icon: 'psychology', title: '智慧風險評估', desc: '運用數據模組預判風險，提供科學化的照護建議。' },
-    { icon: 'edit_calendar', title: '客製化方案設計', desc: '協助第一線人員根據需求，快速制定適配的介入計畫。' },
-    { icon: 'handshake', title: '高效生態鏈結', desc: '跨場域媒合醫療、社福與運動資源，擴大服務邊界。' },
-    { icon: 'local_shipping', title: '精準物資配送', desc: '串聯供應鏈，確保健康商品與營養包精準送達家庭。' },
-    { icon: 'update', title: '長效動態管理', desc: '建立數據反饋閉環，確保服務成效並提升客戶黏著度。' },
+    { icon: 'monitor_heart', title: '精準數據採集', desc: '數位化評估工具，標準化掌握個案健康現況。', image: '/images/pillar-1.png' },
+    { icon: 'psychology', title: '智慧風險評估', desc: '運用數據模組預判風險，提供科學化的照護建議。', image: '/images/pillar-2.png' },
+    { icon: 'edit_calendar', title: '客製化方案設計', desc: '協助第一線人員根據需求，快速制定適配的介入計畫。', image: '/images/pillar-3.png' },
+    { icon: 'handshake', title: '高效生態鏈結', desc: '跨場域媒合醫療、社福與運動資源，擴大服務邊界。', image: '/images/pillar-4.png' },
+    { icon: 'local_shipping', title: '精準物資配送', desc: '串聯供應鏈，確保健康商品與營養包精準送達家庭。', image: '/images/pillar-5.png' },
+    { icon: 'update', title: '長效動態管理', desc: '建立數據反饋閉環，確保服務成效並提升客戶黏著度。', image: '/images/pillar-6.png' },
 ]
 
 const steps = [
@@ -148,12 +148,16 @@ export default function LandingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {pillars.map((p) => (
-                            <div key={p.icon} className="bg-white p-6 rounded-xl shadow-[0_4px_24px_-4px_rgba(31,183,183,0.08)] border border-cl-neutral flex flex-col gap-3 hover:-translate-y-1 transition-transform">
-                                <div className="w-12 h-12 rounded-full bg-cl-primary/10 flex items-center justify-center text-cl-primary">
+                            <div key={p.icon} className="bg-white p-6 rounded-xl shadow-[0_4px_24px_-4px_rgba(31,183,183,0.08)] border border-cl-neutral flex flex-col gap-3 hover:-translate-y-1 transition-transform overflow-hidden">
+                                <div className="w-12 h-12 rounded-full bg-cl-primary/10 flex items-center justify-center text-cl-primary shrink-0">
                                     <span className="material-symbols-outlined">{p.icon}</span>
                                 </div>
                                 <h3 className="font-manrope text-2xl font-semibold text-cl-secondary">{p.title}</h3>
-                                <p className="font-manrope text-base text-cl-secondary/70">{p.desc}</p>
+                                <p className="font-manrope text-base text-cl-secondary/70 mb-4">{p.desc}</p>
+                                <div className="w-full flex-grow flex items-end justify-center bg-slate-50/50 rounded-lg pt-4 mt-auto">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={p.image} alt={p.title} className="w-auto h-[280px] object-contain drop-shadow-sm rounded-t-lg" />
+                                </div>
                             </div>
                         ))}
                     </div>
