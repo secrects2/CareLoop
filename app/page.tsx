@@ -154,9 +154,9 @@ export default function LandingPage() {
                                 </div>
                                 <h3 className="font-manrope text-2xl font-semibold text-cl-secondary">{p.title}</h3>
                                 <p className="font-manrope text-base text-cl-secondary/70 mb-4">{p.desc}</p>
-                                <div className="w-full flex-grow flex items-end justify-center bg-slate-50/50 rounded-lg pt-4 mt-auto">
+                                <div className="w-full flex-grow flex items-start justify-center bg-slate-50/50 rounded-lg pt-4 mt-auto overflow-hidden">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={p.image} alt={p.title} className="w-auto h-[280px] object-contain drop-shadow-sm rounded-t-lg" />
+                                    <img src={p.image} alt={p.title} className="w-full h-[280px] object-cover object-top drop-shadow-sm rounded-t-lg" />
                                 </div>
                             </div>
                         ))}
